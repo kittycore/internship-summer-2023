@@ -21,6 +21,17 @@ def wildcard(directory: str, extension: str) -> Iterator[str]:
 
 
 def extract_identifier(path: str) -> str:
+    '''Extracts an identifier (name) of a gravitational wave event
+    from a file path if it is present.
+
+    Args:
+        path (str): The file path to extract an identifier from.
+
+    Returns:
+        str: The identifier (name) of the gravitational wave event,
+            or 'Unknown' if no identifier is present.
+    '''
+
     pattern = re.compile(r'GW\d+_?(?=\d)\d*')
     m = pattern.search(path)
     if m:
