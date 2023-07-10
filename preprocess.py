@@ -39,11 +39,20 @@ def extract_identifier(path: str) -> str:
     return 'Unknown'
 
 
+def extract_model(path: str) -> str:
+    for model in ['IMRPhenomXPHM', 'SEOBNRv4PHM']:
+        if model in path:
+            return model
+    return 'Unknown'
+
+
 def main() -> None:
     directory = os.path.join('data', 'modelling')
     for path in wildcard(directory, 'txt'):
         identifier = extract_identifier(path)
-        print(identifier)
+        model = extract_model(path)
+
+        print(f'{identifier} ({model})')
 
 
 if __name__ == '__main__':
