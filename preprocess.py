@@ -40,6 +40,18 @@ def extract_identifier(path: str) -> str:
 
 
 def extract_model(path: str) -> str:
+    '''Extract the model used for a set of simulations from a file
+    path. If the model is not found within GWTC datasets, 'Unknown'
+    is returned instead.
+
+    Args:
+        path (str): The file path to extract a model from.
+
+    Returns:
+        str: The extracted model, or 'Unknown' if the model is
+            not found within GWTC datasets.
+    '''
+
     for model in ['IMRPhenomXPHM', 'SEOBNRv4PHM']:
         if model in path:
             return model
