@@ -58,12 +58,26 @@ def extract_model(path: str) -> str:
     return 'Unknown'
 
 
-def main() -> None:
-    directory = os.path.join('data', 'modelling')
-    for path in wildcard(directory, 'txt'):
+def find_models(directory: str) -> dict[str, str]:
+    models = {}
+
+    paths = sorted(wildcard(directory, 'txt'))
+    for path in paths:
         identifier = extract_identifier(path)
         model = extract_model(path)
+        key = f'{identifier}_{model}'
+        models[key] = path
 
+    return models
+
+
+def main() -> None:
+    directory = os.path.join('data', 'modelling')
+    models = find_models(directory)
+
+    for key in models.keys():
+        identifier = extract_identifier(key)
+        model = extract_model(key)
         print(f'{identifier} ({model})')
 
 
