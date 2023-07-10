@@ -71,14 +71,48 @@ def find_models(directory: str) -> dict[str, str]:
     return models
 
 
+def trim_models(models: dict[str, str]) -> dict[str, str]:
+    keeps = []
+
+    for key in sorted(models.keys()):
+        identifier = extract_identifier(key)
+        model = extract_model(key)
+
+        # If the model is not found within GWTC datasets, skip it.
+        if model == 'Unknown':
+            continue
+
+        skip = False
+        for keep in keeps:
+            # If an event with the same identifier has already been seen,
+            # skip it, as we don't want any duplicates. IMRPhenomXPHM models
+            # will be preferred because of the alphabetisation by sorting.
+            if identifier == extract_identifier(keep):
+                skip = True
+                break
+        if skip:
+            continue
+
+        keeps.append(key)
+
+    # Return a copy of the models dictionary with only the keys in `keeps`.
+    return { key: models[key] for key in keeps }
+
+
 def main() -> None:
     directory = os.path.join('data', 'modelling')
     models = find_models(directory)
+    trimmed = trim_models(models)
 
     for key in models.keys():
         identifier = extract_identifier(key)
         model = extract_model(key)
-        print(f'{identifier} ({model})')
+
+        untrimmed = key in trimmed
+
+        print(f'{identifier} ({model}) {"[trimmed]" if not untrimmed else ""}')
+
+    print(f'Found {len(models)} models, trimmed to {len(trimmed)}.')
 
 
 if __name__ == '__main__':
