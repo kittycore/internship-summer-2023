@@ -3,6 +3,13 @@ import glob, os, re
 from typing import Iterator
 
 
+# Models found within the GWTC datasets.
+MODELS = [
+    'IMRPhenomXPHM', 'SEOBNRv4PHM', 'IMRPhenomPv2', 'IMRPhenomPv3HM',
+    'PrecessingSpinIMRHM', 'NRSur7dq4', 'SEOBNRv4P',
+]
+
+
 def wildcard(directory: str, extension: str) -> Iterator[str]:
     '''Searches for files ending with the given `extension` within
     `directory` and yields the file path of each matching file.
@@ -52,7 +59,7 @@ def extract_model(path: str) -> str:
             not found within GWTC datasets.
     '''
 
-    for model in ['IMRPhenomXPHM', 'SEOBNRv4PHM']:
+    for model in MODELS:
         if model in path:
             return model
     return 'Unknown'
@@ -85,7 +92,7 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
         skip = False
         for keep in keeps:
             # If an event with the same identifier has already been seen,
-            # skip it, as we don't want any duplicates. IMRPhenomXPHM models
+            # skip it, as we don't want any duplicates. IMRPhenom* models
             # will be preferred because of the alphabetisation by sorting.
             if identifier == extract_identifier(keep):
                 skip = True
