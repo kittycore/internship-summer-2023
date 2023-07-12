@@ -1,3 +1,5 @@
+import numpy as np
+
 import glob, os, re
 
 from typing import Iterator
@@ -8,6 +10,35 @@ MODELS = [
     'IMRPhenomXPHM', 'SEOBNRv4PHM', 'IMRPhenomPv2', 'IMRPhenomPv3HM',
     'PrecessingSpinIMRHM', 'NRSur7dq4', 'SEOBNRv4P',
 ]
+
+# The NumPy data type of the simulation models.
+MODEL_DTYPE = [
+    ('a_final', np.float64),
+    ('mass_final[Msun]', np.float64),
+    ('DL[Mpc]', np.float64),
+    ('inclination[rad]', np.float64),
+    ('OpeningAngleU10-40deg[rad]', np.float64),
+    ('FQQ', np.float64),
+    ('FNUNU', np.float64),
+    ('FBZ', np.float64),
+    ('FGW', np.float64),
+]
+
+
+class Event(np.ndarray):
+    DTYPE = [
+        ('inclination', np.float64),
+        ('opening_angle', np.float64),
+        ('flux_QQ', np.float64),
+        ('flux_NU', np.float64),
+        ('flux_BZ', np.float64),
+        ('flux_GW', np.float64),
+        ('upper_limit', np.float64),
+    ]
+
+    def __new__(cls, simulations: int):
+        shape = (simulations)
+        return super().__new__(cls, shape, dtype = Event.DTYPE)
 
 
 def wildcard(directory: str, extension: str) -> Iterator[str]:
@@ -135,20 +166,31 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
 
 
 def main() -> None:
+    events = {}
+
+    # Load and trim the simulation models.
     directory = os.path.join('data', 'modelling')
     models = find_models(directory)
-    trimmed = trim_models(models)
+    models = trim_models(models)
 
-    for key in models.keys():
+    for key, path in models.items():
+        data = np.loadtxt(path, dtype = MODEL_DTYPE)
+
+        event = Event(data.size)
+        event['inclination'] = data['inclination[rad]']
+        event['opening_angle'] = data['OpeningAngleU10-40deg[rad]']
+        event['flux_QQ'] = data['FQQ']
+        event['flux_NU'] = data['FNUNU']
+        event['flux_BZ'] = data['FBZ']
+        event['flux_GW'] = data['FGW']
+
+        events[key] = event
+
         identifier = extract_identifier(key)
         model = extract_model(key)
+        print(f'Read {identifier} ({model}) from {os.path.basename(path)}.')
 
-        untrimmed = key in trimmed
-
-        print(f'{identifier} ({model}) {"[trimmed]" if not untrimmed else ""}')
-
-    print(f'Found {len(models)} models, trimmed to {len(trimmed)}.')
-
+    print(f'Read {len(events)} total events.')
 
 if __name__ == '__main__':
     main()
