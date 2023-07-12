@@ -311,6 +311,17 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
     return loads
 
 
+def find_limits(directory: str) -> dict[str, str]:
+    limits = {}
+
+    paths = sorted(wildcard(directory, 'npy'))
+    for path in paths:
+        identifier = extract_identifier(path)
+        limits[identifier] = path
+
+    return limits
+
+
 def main() -> None:
     # Find, trim and finally load the simulation models.
     directory = os.path.join('data', 'modelling')
@@ -326,6 +337,12 @@ def main() -> None:
     events = load_places(places, events)
 
     print(f'Read {len(events)} locations.')
+    print()
+
+    directory = os.path.join('data', 'upper_limits')
+    limits = find_limits(directory)
+
+    print(f'Found {len(limits)} upper limits.')
 
 
 if __name__ == '__main__':
