@@ -1,8 +1,9 @@
+import h5py
 import numpy as np
 
 import glob, os, re
 
-from typing import Iterator
+from typing import cast, Iterator
 
 
 # Models found within the GWTC datasets.
@@ -210,6 +211,63 @@ def main() -> None:
         print(f'Read {identifier} ({model}) from {os.path.basename(path)}.')
 
     print(f'Read {len(events)} total events.')
+    print()
+
+    directory = os.path.join('data', 'GWTC')
+    places = find_places(directory)
+
+    count = 0
+    for key, event in events.items():
+        identifier = extract_identifier(key)
+        path = None
+
+        # If there's an exact match for the identifier...
+        if identifier in places:
+            path = places[identifier]
+        else:
+            # Otherwise, search for a similar identifier.
+            for i, p in places.items():
+                if identifier in i:
+                    path = p
+                    break
+
+        if path is None:
+            print(f'No GWTC dataset was found for {identifier}!')
+            continue
+
+        with h5py.File(path) as f:
+            model = extract_model(key)
+            model_key = model
+
+            # Determine if the model exists within the GWTC dataset and in
+            # which format, as some datasets expect only the name of the model
+            # and others use the format C01:{model}.
+            if model_key not in f.keys():
+                model_key = f'C01:{model}'
+                if model_key not in f.keys():
+                    print(f'{model} is not present in the GWTC dataset for ' \
+                      f'{identifier}!')
+                    continue
+
+            data = f[model_key]['posterior_samples'] # type: ignore
+
+            # Check if there is a shape mismatch.
+            if event.shape != data['ra'].shape: # type: ignore
+                print(f'Ignoring {identifier} ({model}) from {path} due to ' \
+                       'shape mismatch.')
+                continue
+
+            event['right_ascension'] = cast(np.ndarray, data['ra']) # type: ignore
+            event['declination'] = cast(np.ndarray, data['dec']) # type: ignore
+
+        events[key] = event
+
+        print(f'Read coordinates of {identifier} ({model}) from ' \
+              f'{os.path.basename(path)}.')
+        count += 1
+
+    print(f'Read {count} locations.')
+
 
 if __name__ == '__main__':
     main()
