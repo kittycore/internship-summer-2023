@@ -312,6 +312,21 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
 
 
 def find_limits(directory: str) -> dict[str, str]:
+    '''Searches for NumPy binary files containing upper limit
+    information within a given `directory` and returns a dictionary
+    containing the identifier of each event and the file path of its
+    associated NumPy binary file.
+
+    Args:
+        directory (str): The directory to search for NumPy binary files
+            (*.npy) containing upper limit information within.
+
+    Returns:
+        dict[str, str]: A dictionary containing the identifier of each
+            event (as the keys) and the file path to its associated
+            binary NumPy file containing upper limits (as the values).
+    '''
+
     limits = {}
 
     paths = sorted(wildcard(directory, 'npy'))
