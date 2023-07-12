@@ -300,10 +300,9 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
                        'shape mismatch.')
                 continue
 
-            event['right_ascension'] = cast(np.ndarray, data['ra']) # type: ignore
-            event['declination'] = cast(np.ndarray, data['dec']) # type: ignore
-
-        loads[key] = event
+            loads[key] = np.copy(event, subok = True)
+            loads[key]['right_ascension'] = cast(np.ndarray, data['ra']) # type: ignore
+            loads[key]['declination'] = cast(np.ndarray, data['dec']) # type: ignore
 
         print(f'Read coordinates of {identifier} ({model}) from ' \
               f'{os.path.basename(path)}.')
