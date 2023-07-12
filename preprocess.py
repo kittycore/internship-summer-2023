@@ -436,12 +436,7 @@ def serialise(directory: str, events: dict[str, Event]) -> None:
     np.savez(path, **events)
 
 
-def main() -> None:
-    # Check if a cache already exists, and if it does, print a notice and exit.
-    directory = 'data'
-    if is_cached(directory):
-        exit('A cache file already exists!')
-
+def preprocess() -> dict[str, Event]:
     # Find, trim and finally load the simulation models.
     directory = os.path.join('data', 'modelling')
     models = find_models(directory)
@@ -464,6 +459,18 @@ def main() -> None:
 
     print(f'Read {len(events)} upper limits.')
 
+    return events
+
+
+def main() -> None:
+    # Check if a cache already exists, and if it does, print a notice and exit.
+    directory = 'data'
+    if is_cached(directory):
+        exit('A cache file already exists!')
+
+    events = preprocess()
+
+    # Serialise the events to a cache file.
     directory = 'data'
     serialise(directory, events)
 
