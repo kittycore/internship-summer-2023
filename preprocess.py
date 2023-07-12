@@ -510,6 +510,14 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
+    '''Adds command-line arguments relevant to the preprocessor to an
+    argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to add
+            the relevant command-line arguments to.
+    '''
+
     parser.add_argument('-f', '--force', action = 'store_true',
         help = 'Regenerates and overwrites the cache if it already exists.')
 
