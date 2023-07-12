@@ -169,24 +169,8 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
     return { key: models[key] for key in keeps }
 
 
-def find_places(directory: str) -> dict[str, str]:
-    places = {}
-
-    paths = sorted(wildcard(directory, 'h5'))
-    for path in paths:
-        identifier = extract_identifier(path)
-        places[identifier] = path
-
-    return places
-
-
-def main() -> None:
+def load_models(models: dict[str, str]) -> dict[str, Event]:
     events = {}
-
-    # Load and trim the simulation models.
-    directory = os.path.join('data', 'modelling')
-    models = find_models(directory)
-    models = trim_models(models)
 
     for key, path in models.items():
         data = np.loadtxt(path, dtype = MODEL_DTYPE)
@@ -209,6 +193,27 @@ def main() -> None:
         identifier = extract_identifier(key)
         model = extract_model(key)
         print(f'Read {identifier} ({model}) from {os.path.basename(path)}.')
+
+    return events
+
+
+def find_places(directory: str) -> dict[str, str]:
+    places = {}
+
+    paths = sorted(wildcard(directory, 'h5'))
+    for path in paths:
+        identifier = extract_identifier(path)
+        places[identifier] = path
+
+    return places
+
+
+def main() -> None:
+    # Find, trim and finally load the simulation models.
+    directory = os.path.join('data', 'modelling')
+    models = find_models(directory)
+    models = trim_models(models)
+    events = load_models(models)
 
     print(f'Read {len(events)} total events.')
     print()
