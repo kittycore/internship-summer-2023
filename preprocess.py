@@ -1,4 +1,4 @@
-import h5py
+import healpy, h5py
 import numpy as np
 
 import glob, os, re
@@ -336,6 +336,52 @@ def find_limits(directory: str) -> dict[str, str]:
     return limits
 
 
+def load_limits(limits: dict[str, str], events: dict[str, Event]) \
+    -> dict[str, Event]:
+    loads = {}
+
+    for key, event in events.items():
+        identifier = extract_identifier(key)
+
+        # If there are any NaNs in the event's coordinates, then a location for
+        # the event was unable to be determined and it has to be skipped.
+        if np.isnan(event['declination']).any():
+            print(f'Ignoring {identifier} due to uninitialised coordinates.')
+            continue
+
+        path = None
+
+        # If there's an exact match for the identifier...
+        if identifier in limits:
+            path = limits[identifier]
+        else:
+            # Otherwise, search for a similar identifier.
+            for i, p in limits.items():
+                if identifier in i:
+                    path = p
+                    break
+
+        if path is None:
+            print(f'No upper limits were found for {identifier}!')
+            continue
+
+        # Convert equatorial coordinates (from the GWTC datasets) into
+        # spherical coordinates (used in the files storing the upper limits).
+        theta = np.pi / 2 - event['declination']
+        phi = event['right_ascension']
+
+        # Convert the spherical coordinates into array indices.
+        pix = healpy.pixelfunc.ang2pix(16, theta, phi)
+
+        healpix = np.load(path)
+        loads[key] = np.copy(event, subok = True)
+        loads[key]['upper_limit'] = healpix[pix]
+
+        print(f'Read upper limits of {identifier} from {path}.')
+
+    return loads
+
+
 def main() -> None:
     # Find, trim and finally load the simulation models.
     directory = os.path.join('data', 'modelling')
@@ -355,8 +401,9 @@ def main() -> None:
 
     directory = os.path.join('data', 'upper_limits')
     limits = find_limits(directory)
+    events = load_limits(limits, events)
 
-    print(f'Found {len(limits)} upper limits.')
+    print(f'Read {len(events)} upper limits.')
 
 
 if __name__ == '__main__':
