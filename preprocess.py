@@ -236,20 +236,10 @@ def find_places(directory: str) -> dict[str, str]:
     return places
 
 
-def main() -> None:
-    # Find, trim and finally load the simulation models.
-    directory = os.path.join('data', 'modelling')
-    models = find_models(directory)
-    models = trim_models(models)
-    events = load_models(models)
+def load_places(places: dict[str, str], events: dict[str, Event]) \
+    -> dict[str, Event]:
+    loads = {}
 
-    print(f'Read {len(events)} total events.')
-    print()
-
-    directory = os.path.join('data', 'GWTC')
-    places = find_places(directory)
-
-    count = 0
     for key, event in events.items():
         identifier = extract_identifier(key)
         path = None
@@ -293,13 +283,29 @@ def main() -> None:
             event['right_ascension'] = cast(np.ndarray, data['ra']) # type: ignore
             event['declination'] = cast(np.ndarray, data['dec']) # type: ignore
 
-        events[key] = event
+        loads[key] = event
 
         print(f'Read coordinates of {identifier} ({model}) from ' \
               f'{os.path.basename(path)}.')
-        count += 1
 
-    print(f'Read {count} locations.')
+    return loads
+
+
+def main() -> None:
+    # Find, trim and finally load the simulation models.
+    directory = os.path.join('data', 'modelling')
+    models = find_models(directory)
+    models = trim_models(models)
+    events = load_models(models)
+
+    print(f'Read {len(events)} total events.')
+    print()
+
+    directory = os.path.join('data', 'GWTC')
+    places = find_places(directory)
+    events = load_places(places, events)
+
+    print(f'Read {len(events)} locations.')
 
 
 if __name__ == '__main__':
