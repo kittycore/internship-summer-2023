@@ -437,6 +437,20 @@ def serialise(directory: str, events: dict[str, Event]) -> None:
 
 
 def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
+    '''Preprocesses several datasets and returns a dictionary
+    containing relevant information for each event.
+
+    Args:
+        arguments (argparse.Namespace): The main entrypoint should pass
+            through the parsed arguments through this parameter.
+
+    Returns:
+        dict[str, Event]: A dictionary containing the identifier and
+            model of each event (as the keys) and a NumPy array with
+            the data type `Event.DTYPE` containing information about
+            the event (as the values).
+    '''
+
     print('--> Preprocessing...')
     print()
 
