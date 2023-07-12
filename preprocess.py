@@ -198,6 +198,11 @@ def main() -> None:
         event['flux_BZ'] = data['FBZ']
         event['flux_GW'] = data['FGW']
 
+        # Initialise the rest of the array to NaN instead of garbage.
+        event['right_ascension'] = np.nan
+        event['declination'] = np.nan
+        event['upper_limit'] = np.nan
+
         events[key] = event
 
         identifier = extract_identifier(key)
