@@ -437,27 +437,60 @@ def serialise(directory: str, events: dict[str, Event]) -> None:
 
 
 def preprocess() -> dict[str, Event]:
+    print('--> Preprocessing...')
+    print()
+
     # Find, trim and finally load the simulation models.
     directory = os.path.join('data', 'modelling')
+
+    print(f'-> Searching for models in {directory}...')
     models = find_models(directory)
+    print(f'<- Found {len(models)} models.')
+
+    print()
+
+    print('-> Trimming models...')
     models = trim_models(models)
+    print(f'<- Trimmed down to {len(models)} models.')
+
+    print()
+
+    print('-> Loading models...')
     events = load_models(models)
+    print(f'<- Successfully loaded {len(models)} models.')
 
-    print(f'Read {len(events)} total events.')
     print()
 
+    # Find and load coordinates for each event from the GWTC datasets.
     directory = os.path.join('data', 'GWTC')
-    places = find_places(directory)
-    events = load_places(places, events)
 
-    print(f'Read {len(events)} locations.')
+    print(f'-> Searching for GWTC datasets in {directory}...')
+    places = find_places(directory)
+    print(f'<- Found {len(places)} datasets.')
+
     print()
 
-    directory = os.path.join('data', 'upper_limits')
-    limits = find_limits(directory)
-    events = load_limits(limits, events)
+    print(f'-> Loading coordinates from GWTC datasets...')
+    events = load_places(places, events)
+    print(f'<- Successfully loaded {len(events)} sets of coordinates.')
 
-    print(f'Read {len(events)} upper limits.')
+    print()
+
+    # Find and load upper limits for each event.
+    directory = os.path.join('data', 'upper_limits')
+
+    print(f'-> Searching for upper limits in {directory}...')
+    limits = find_limits(directory)
+    print(f'<- Found {len(limits)} upper limits.')
+
+    print()
+
+    print(f'-> Loading upper limits...')
+    events = load_limits(limits, events)
+    print(f'<- Successfully loaded {len(events)} upper limits.')
+
+    print()
+    print('<-- Preprocessing complete!')
 
     return events
 
