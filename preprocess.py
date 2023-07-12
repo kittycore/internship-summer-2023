@@ -1,7 +1,7 @@
 import healpy, h5py
 import numpy as np
 
-import glob, os, re
+import argparse, glob, os, re
 
 from typing import cast, Iterator
 
@@ -436,7 +436,7 @@ def serialise(directory: str, events: dict[str, Event]) -> None:
     np.savez(path, **events)
 
 
-def preprocess() -> dict[str, Event]:
+def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     print('--> Preprocessing...')
     print()
 
@@ -495,13 +495,21 @@ def preprocess() -> dict[str, Event]:
     return events
 
 
-def main() -> None:
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument('-f', '--force', action = 'store_true',
+        help = 'Regenerates and overwrites the cache if it already exists.')
+
+
+def main(arguments: argparse.Namespace) -> None:
+    args = vars(arguments) # Shorthand for easier access!
+
     # Check if a cache already exists, and if it does, print a notice and exit.
     directory = 'data'
-    if is_cached(directory):
-        exit('A cache file already exists!')
+    if not args['force'] and is_cached(directory):
+        exit('A cache file already exists! Use `-f` or `--force` to ' \
+             'regenerate it.')
 
-    events = preprocess()
+    events = preprocess(arguments)
 
     # Serialise the events to a cache file.
     directory = 'data'
@@ -509,4 +517,11 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(prog = 'preprocess',
+        description = 'Preprocesses relevant information from several ' \
+            'datasets to save space and time.')
+    add_arguments(parser)
+
+    arguments = parser.parse_args()
+
+    main(arguments)
