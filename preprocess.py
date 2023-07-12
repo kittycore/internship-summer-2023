@@ -6,6 +6,9 @@ import glob, os, re
 from typing import cast, Iterator
 
 
+# The name of the cache file.
+CACHE_FILE = 'cache.npz'
+
 # Models found within the GWTC datasets.
 MODELS = [
     'IMRPhenomXPHM_comoving', 'IMRPhenomXPHM', 'IMRPhenomPv3HM',
@@ -382,7 +385,17 @@ def load_limits(limits: dict[str, str], events: dict[str, Event]) \
     return loads
 
 
+def is_cached(directory: str) -> bool:
+    path = os.path.join(directory, CACHE_FILE)
+    return os.path.isfile(path)
+
+
 def main() -> None:
+    # Check if a cache already exists, and if it does, print a notice and exit.
+    directory = 'data'
+    if is_cached(directory):
+        exit('A cache file already exists!')
+
     # Find, trim and finally load the simulation models.
     directory = os.path.join('data', 'modelling')
     models = find_models(directory)
