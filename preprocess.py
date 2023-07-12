@@ -34,6 +34,8 @@ class Event(np.ndarray):
         ('flux_NU', np.float64),
         ('flux_BZ', np.float64),
         ('flux_GW', np.float64),
+        ('right_ascension', np.float64),
+        ('declination', np.float64),
         ('upper_limit', np.float64),
     ]
 
