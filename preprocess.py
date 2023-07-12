@@ -198,6 +198,19 @@ def load_models(models: dict[str, str]) -> dict[str, Event]:
 
 
 def find_places(directory: str) -> dict[str, str]:
+    '''Searches for GWTC datasets within a given `directory` and
+    returns a dictionary containing the identifier of each event and
+    the file path of its associated dataset.
+
+    Args:
+        directory (str): The directory to search for datasets within.
+
+    Returns:
+        dict[str, str]: A dictionary containing the identifier of each
+            event (as the keys) and the file path to its associated
+            GWTC-2, GWTC-2.1 or GWTC-3 dataset (as the values).
+    '''
+
     places = {}
 
     paths = sorted(wildcard(directory, 'h5'))
