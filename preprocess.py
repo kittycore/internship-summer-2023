@@ -422,6 +422,16 @@ def deserialise(directory: str) -> dict[str, Event]:
 
 
 def serialise(directory: str, events: dict[str, Event]) -> None:
+    '''Serialises a set of events to a cache file.
+
+    Args:
+        directory (str): The directory to save the cache into.
+        events (dict[str, Event]): A dictionary containing the
+            identifier and model of each event (as the keys) and a
+            NumPy array with the data type `Event.DTYPE` containing
+            information about the event (as the values).
+    '''
+
     path = os.path.join(directory, CACHE_FILE)
     np.savez(path, **events)
 
