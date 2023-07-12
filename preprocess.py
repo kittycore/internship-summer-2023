@@ -7,8 +7,9 @@ from typing import Iterator
 
 # Models found within the GWTC datasets.
 MODELS = [
-    'IMRPhenomXPHM', 'SEOBNRv4PHM', 'IMRPhenomPv2', 'IMRPhenomPv3HM',
-    'PrecessingSpinIMRHM', 'NRSur7dq4', 'SEOBNRv4P',
+    'IMRPhenomXPHM_comoving', 'IMRPhenomXPHM', 'IMRPhenomPv3HM',
+    'IMRPhenomPv2', 'NRSur7dq4', 'SEOBNRv4PHM', 'PrecessingSpinIMRHM',
+    'SEOBNRv4P',
 ]
 
 # The NumPy data type of the simulation models.
