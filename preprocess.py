@@ -400,6 +400,18 @@ def is_cached(directory: str) -> bool:
 
 
 def deserialise(directory: str) -> dict[str, Event]:
+    '''Deserialises events from the cache file.
+
+    Args:
+        directory (str): The directory where the cache is located.
+
+    Returns:
+        dict[str, Event]: A dictionary containing the identifier and
+            model of each event (as the keys) and a NumPy array with
+            the data type `Event.DTYPE` containing information about
+            the event (as the values).
+    '''
+
     path = os.path.join(directory, CACHE_FILE)
 
     events = None
