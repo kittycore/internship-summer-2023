@@ -390,6 +390,21 @@ def is_cached(directory: str) -> bool:
     return os.path.isfile(path)
 
 
+def deserialise(directory: str) -> dict[str, Event]:
+    path = os.path.join(directory, CACHE_FILE)
+
+    events = None
+    with np.load(path) as dataset:
+        events = dict(dataset)
+
+    return events
+
+
+def serialise(directory: str, events: dict[str, Event]) -> None:
+    path = os.path.join(directory, CACHE_FILE)
+    np.savez(path, **events)
+
+
 def main() -> None:
     # Check if a cache already exists, and if it does, print a notice and exit.
     directory = 'data'
@@ -417,6 +432,9 @@ def main() -> None:
     events = load_limits(limits, events)
 
     print(f'Read {len(events)} upper limits.')
+
+    directory = 'data'
+    serialise(directory, events)
 
 
 if __name__ == '__main__':
