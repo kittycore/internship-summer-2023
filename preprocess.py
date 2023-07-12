@@ -165,6 +165,17 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
     return { key: models[key] for key in keeps }
 
 
+def find_places(directory: str) -> dict[str, str]:
+    places = {}
+
+    paths = sorted(wildcard(directory, 'h5'))
+    for path in paths:
+        identifier = extract_identifier(path)
+        places[identifier] = path
+
+    return places
+
+
 def main() -> None:
     events = {}
 
