@@ -386,6 +386,15 @@ def load_limits(limits: dict[str, str], events: dict[str, Event]) \
 
 
 def is_cached(directory: str) -> bool:
+    '''Returns True if a cache file already exists.
+
+    Args:
+        directory (str): The directory to search for a cache.
+
+    Returns:
+        bool: True is a cache exists, and False otherwise.
+    '''
+
     path = os.path.join(directory, CACHE_FILE)
     return os.path.isfile(path)
 
