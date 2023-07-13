@@ -11,7 +11,7 @@ from preprocess import Event
 FIXED_ANGLE = np.deg2rad(20)
 
 # A right angle, in radians.
-RIGHT_ANGLE = np.pi
+RIGHT_ANGLE = np.pi / 2
 
 # The different binary black hole merger models.
 MODELS = ['QQ', 'NU', 'BZ', 'GW']
