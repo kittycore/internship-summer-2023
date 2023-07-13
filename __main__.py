@@ -7,6 +7,12 @@ import preprocess
 from preprocess import Event
 
 
+# The opening angle for the 'fixed' case, in radians.
+FIXED_ANGLE = np.deg2rad(20)
+
+# A right angle, in radians.
+RIGHT_ANGLE = np.pi
+
 # The different binary black hole merger models.
 MODELS = ['QQ', 'NU', 'BZ', 'GW']
 
@@ -45,15 +51,36 @@ class EventSample(np.ndarray):
         return super().__new__(cls, shape, dtype = EventSample.DTYPE)
 
 
+def is_visible(
+    inclination: np.ndarray,
+    opening_angle: np.ndarray | None = None
+) -> np.ndarray:
+    # Wrap inclination angles outside the domain [0, np.pi].
+    needs_wrapping = inclination > RIGHT_ANGLE
+    wrapped = inclination - (2 * RIGHT_ANGLE)
+    inclination = np.where(needs_wrapping, wrapped, inclination)
+
+    angle = FIXED_ANGLE if opening_angle is None else opening_angle
+
+    within_maximum = inclination <  angle
+    within_minimum = inclination > -angle
+    return within_maximum & within_minimum
+
+
 def process(events: dict[str, Event]) -> EventSample:
-    sample = EventSample(len(events))
+    sample_size = len(events)
+    sample = EventSample(sample_size)
 
     # Collect all of the events into a single array.
     collector = np.concatenate([*events.values()], axis = -1)
 
+    choices = random.choice(collector, size = sample_size, shuffle = False)
     for model in MODELS:
-        choices = random.choice(collector, size = sample.size, shuffle = False)
         sample[f'predicted_{model}'] = choices[f'flux_{model}']
+
+    sample['visible_fixed'] = is_visible(choices['inclination'])
+    sample['visible_uniform'] = is_visible(
+        choices['inclination'], choices['opening_angle'])
 
     return sample
 
@@ -65,17 +92,27 @@ def plot(sample: EventSample) -> None:
         axes = figure.add_subplot(2, 2, index + 1)
 
         fluxes = sample[f'predicted_{model}']
+        uniform = fluxes[sample['visible_uniform']]
+        fixed = fluxes[sample['visible_fixed']]
+
+        percent_uniform = uniform.size / fluxes.size * 100
+        percent_fixed = fixed.size / fluxes.size * 100
 
         maximum = np.max(fluxes)
         minimum = np.min(fluxes)
         bins = np.logspace(np.log10(minimum), np.log10(maximum), 20)
 
-        axes.hist(fluxes, bins, color = '#bcefb7')
+        axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
+        axes.hist(uniform, bins, color = '#a9a9a9',
+            label = f'Uniform ({uniform.size}, {percent_uniform:.0f}%)')
+        axes.hist(fixed, bins, color = '#c9c9c9',
+            label = f'Fixed ({fixed.size}, {percent_fixed:.0f}%)')
 
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
         axes.set_ylabel('Number')
         axes.set_xscale('log')
+        axes.legend()
 
     figure.suptitle(f'Population Sample (Size: {sample.size})', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
