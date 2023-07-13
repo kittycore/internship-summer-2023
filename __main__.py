@@ -151,6 +151,7 @@ def main() -> None:
     sample = process(events)
     plot(sample)
 
+    plt.savefig('population.png')
     plt.show()
 
 
