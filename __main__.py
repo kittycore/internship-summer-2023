@@ -7,7 +7,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-p', action = 'store_true',
         help = 'Exclusively run the preprocessor.')
 
-    preprocess.add_arguments(parser)
+    group = parser.add_argument_group('preprocessor',
+        description = 'Arguments relevant to the preprocessor.')
+    preprocess.add_arguments(parser, group)
 
 
 def main() -> None:
