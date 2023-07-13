@@ -476,6 +476,12 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
 
     root_directory = args['root_directory']
 
+    # Check if a cache already exists, and if it does, deserialise it and
+    # return that instead.
+    if not args['force'] and is_cached(root_directory):
+        print('A cache file already exists! Loading from cache...')
+        return deserialise(root_directory)
+
     print('--> Preprocessing...')
     print()
 
