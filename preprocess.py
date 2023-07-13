@@ -472,11 +472,15 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
             the event (as the values).
     '''
 
+    args = vars(arguments) # Shorthand for easier access!
+
+    root_directory = args['root_directory']
+
     print('--> Preprocessing...')
     print()
 
     # Find, trim and finally load the simulation models.
-    directory = os.path.join('data', 'modelling')
+    directory = os.path.join(root_directory, args['models_directory'])
 
     print(f'-> Searching for models in {directory}...')
     models = find_models(directory)
@@ -497,7 +501,7 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     print()
 
     # Find and load coordinates for each event from the GWTC datasets.
-    directory = os.path.join('data', 'GWTC')
+    directory = os.path.join(root_directory, args['places_directory'])
 
     print(f'-> Searching for GWTC datasets in {directory}...')
     places = find_places(directory)
@@ -512,7 +516,7 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     print()
 
     # Find and load upper limits for each event.
-    directory = os.path.join('data', 'upper_limits')
+    directory = os.path.join(root_directory, args['limits_directory'])
 
     print(f'-> Searching for upper limits in {directory}...')
     limits = find_limits(directory)
@@ -551,12 +555,23 @@ def add_arguments(parser: argparse.ArgumentParser,
     target.add_argument('-f', '--force', action = 'store_true',
         help = 'Regenerates and overwrites the cache if it already exists.')
 
+    subgroup = parser.add_argument_group('directories',
+        description = 'Specify the directories where datasets are located.')
+    subgroup.add_argument('--root-directory', default = 'data',
+        help = 'The root directory where the other directories are located.')
+    subgroup.add_argument('--models-directory', default = 'modelling',
+        help = 'The directory containing the modelling results.')
+    subgroup.add_argument('--places-directory', default = 'GWTC',
+        help = 'The directory storing the GWTC datasets.')
+    subgroup.add_argument('--limits-directory', default = 'upper_limits',
+        help = 'The directory containing upper limits information.')
+
 
 def main(arguments: argparse.Namespace) -> None:
     args = vars(arguments) # Shorthand for easier access!
 
     # Check if a cache already exists, and if it does, print a notice and exit.
-    directory = 'data'
+    directory = args['root_directory']
     if not args['force'] and is_cached(directory):
         exit('A cache file already exists! Use `-f` or `--force` to ' \
              'regenerate it.')
@@ -564,7 +579,6 @@ def main(arguments: argparse.Namespace) -> None:
     events = preprocess(arguments)
 
     # Serialise the events to a cache file.
-    directory = 'data'
     serialise(directory, events)
 
 
