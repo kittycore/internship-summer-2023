@@ -6,6 +6,8 @@ import argparse
 import preprocess
 from preprocess import Event
 
+from typing import cast
+
 
 # The opening angle for the 'fixed' case, in radians.
 FIXED_ANGLE = np.deg2rad(20)
@@ -67,7 +69,7 @@ def is_visible(
     return within_maximum & within_minimum
 
 
-def process(events: dict[str, Event]) -> EventSample:
+def realise(events: dict[str, Event]) -> EventSample:
     sample_size = len(events)
     sample = EventSample(sample_size)
 
@@ -83,6 +85,16 @@ def process(events: dict[str, Event]) -> EventSample:
         choices['inclination'], choices['opening_angle'])
 
     return sample
+
+
+def process(events: dict[str, Event], realisations: int) -> EventSample:
+    collector = realise(events)
+
+    for _ in range(1, realisations):
+        sample = realise(events)
+        collector = np.concatenate([collector, sample], axis = -1)
+
+    return cast(EventSample, collector)
 
 
 def plot(sample: EventSample) -> None:
@@ -121,6 +133,8 @@ def plot(sample: EventSample) -> None:
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-p', action = 'store_true',
         help = 'Exclusively run the preprocessor.')
+    parser.add_argument('-r', type = int, default = 1,
+        help = 'The number of realisations to process.')
     parser.add_argument('-s', type = int, default = DEFAULT_SEED,
         help = 'The seed used for the random number generator.')
 
@@ -148,7 +162,7 @@ def main() -> None:
     random = np.random.default_rng(args['s'])
 
     events = preprocess.preprocess(arguments)
-    sample = process(events)
+    sample = process(events, args['r'])
     plot(sample)
 
     plt.savefig('population.png')
