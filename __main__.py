@@ -84,6 +84,8 @@ def plot(sample: EventSample) -> None:
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-p', action = 'store_true',
         help = 'Exclusively run the preprocessor.')
+    parser.add_argument('-s', type = int, default = DEFAULT_SEED,
+        help = 'The seed used for the random number generator.')
 
     group = parser.add_argument_group('preprocessor',
         description = 'Arguments relevant to the preprocessor.')
@@ -106,7 +108,7 @@ def main() -> None:
 
     # Seed the random number generator.
     global random
-    random = np.random.default_rng(DEFAULT_SEED)
+    random = np.random.default_rng(args['s'])
 
     events = preprocess.preprocess(arguments)
     sample = process(events)
