@@ -116,57 +116,7 @@ def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
     return collector
 
 
-def plot_single(sample: EventSample) -> None:
-    figure = plt.figure(figsize = [12, 12])
-
-    visible_u = sample['visible_u']
-    visible_f = sample['visible_f']
-    visible = visible_f
-
-    for index, model in enumerate(MODELS):
-        axes = figure.add_subplot(2, 2, index + 1)
-
-        fluxes = sample[f'predicted_{model}']
-        fluxes_u = fluxes[visible_u]
-        fluxes_f = fluxes[visible_f]
-        fluxes_d = fluxes[sample[f'detectable_{model}'] & visible]
-
-        # Calculate the percentage of fluxes that are visible in the
-        # uniform and fixed cases and are detectable.
-        percent_u = fluxes_u.size / fluxes.size * 100
-        percent_f = fluxes_f.size / fluxes.size * 100
-        percent_d = fluxes_d.size / fluxes.size * 100
-
-        maximum = np.max(fluxes)
-        minimum = np.min(fluxes)
-        bins = np.logspace(np.log10(minimum), np.log10(maximum), 20)
-
-        # Plot the fluxes for each case as histograms.
-        axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
-        axes.hist(fluxes_u, bins, color = '#a9a9a9',
-            label = f'Uniform ({fluxes_u.size}, {percent_u:.0f}%)')
-        axes.hist(fluxes_f, bins, color = '#c9c9c9',
-            label = f'Fixed ({fluxes_f.size}, {percent_f:.0f}%)')
-        axes.hist(fluxes_d, bins, color = '#eb3a2e',
-            label = f'Detectable ({fluxes_d.size}, {percent_d:.0f}%)')
-
-        # Configure the subplot.
-        axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
-        axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
-        axes.set_ylabel('Number')
-        axes.set_xscale('log')
-        axes.legend()
-
-    # Configure the plot.
-    figure.suptitle(f'Population Sample (Size: {sample.size})', fontsize = 14)
-    figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
-
-
 def plot(samples: list[EventSample]) -> None:
-    if len(samples) == 1:
-        plot_single(samples[0])
-        return
-
     figure = plt.figure(figsize = [12, 12])
 
     for index, model in enumerate(MODELS):
