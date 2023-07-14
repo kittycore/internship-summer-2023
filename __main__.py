@@ -87,18 +87,18 @@ def realise(events: dict[str, Event]) -> EventSample:
     return sample
 
 
-def process(events: dict[str, Event], realisations: int) -> EventSample:
-    collector = realise(events)
+def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
+    collector = []
 
-    for realisation in range(1, realisations):
+    for realisation in range(0, realisations):
         print(f'Realising {realisation + 1:4d} of {realisations:4d}...')
         sample = realise(events)
-        collector = np.concatenate([collector, sample], axis = -1)
+        collector.append(sample)
 
-    return cast(EventSample, collector)
+    return collector
 
 
-def plot(sample: EventSample) -> None:
+def plot_single(sample: EventSample) -> None:
     figure = plt.figure(figsize = [12, 12])
 
     for index, model in enumerate(MODELS):
@@ -129,6 +129,12 @@ def plot(sample: EventSample) -> None:
 
     figure.suptitle(f'Population Sample (Size: {sample.size})', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
+
+
+def plot(samples: list[EventSample]) -> None:
+    if len(samples) == 1:
+        plot_single(samples[0])
+        return
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -163,8 +169,8 @@ def main() -> None:
     random = np.random.default_rng(args['s'])
 
     events = preprocess.preprocess(arguments)
-    sample = process(events, args['r'])
-    plot(sample)
+    samples = process(events, args['r'])
+    plot(samples)
 
     plt.savefig('population.png')
     plt.show()
