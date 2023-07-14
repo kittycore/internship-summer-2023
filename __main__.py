@@ -1,21 +1,22 @@
+# Third-party modules.
 import matplotlib.pyplot as plt
 import numpy as np
 
+# Standard library modules.
 import argparse
 
+# First-party modules.
 import preprocess
-from preprocess import Event
+from preprocess import Event # To simplify type hints.
 
 
-# The opening angle for the 'fixed' case, in radians.
+# The opening angle for the 'fixed' case (in radians).
 FIXED_ANGLE = np.deg2rad(20)
-
-# A right angle, in radians.
+# A right angle (in radians).
 RIGHT_ANGLE = np.pi / 2
 
-# The different binary black hole merger models.
+# Models of the relativistic jet produced during a BBH merger.
 MODELS = ['QQ', 'NU', 'BZ', 'GW']
-
 # More descriptive names for each model.
 MODELS_EXPANDED = {
     'QQ': 'Charged Black Hole',
@@ -24,11 +25,16 @@ MODELS_EXPANDED = {
     'GW': 'Gravitational Wave Energy Conversion',
 }
 
-# Default seed for the random number generator.
+# Default seed for the random number generator. The seed can be
+# overridden at runtime using the `-s` command-line option.
 DEFAULT_SEED = 0x9B7DB742C51C67FF
-
 # A random number generator accessible anywhere in this module.
 random: np.random.Generator
+
+# Default number of bins for plotted histograms.
+DEFAULT_BIN_COUNT = 20
+# Default number of realisations.
+DEFAULT_REALISATIONS = 1
 
 
 class EventSample(np.ndarray):
@@ -37,8 +43,8 @@ class EventSample(np.ndarray):
         ('predicted_NU', np.float64),
         ('predicted_BZ', np.float64),
         ('predicted_GW', np.float64),
-        ('visible_fixed', np.bool_),
-        ('visible_uniform', np.bool_),
+        ('visible_f', np.bool_),
+        ('visible_u', np.bool_),
         ('detectable_QQ', np.bool_),
         ('detectable_NU', np.bool_),
         ('detectable_BZ', np.bool_),
@@ -52,23 +58,26 @@ class EventSample(np.ndarray):
 
 
 def is_visible(
-    inclination: np.ndarray,
-    opening_angle: np.ndarray | None = None
+    inclinations: np.ndarray,
+    opening_angles: np.ndarray | None = None
 ) -> np.ndarray:
-    # Wrap inclination angles outside the domain [0, np.pi].
-    needs_wrapping = inclination > RIGHT_ANGLE
-    wrapped = inclination - (2 * RIGHT_ANGLE)
-    inclination = np.where(needs_wrapping, wrapped, inclination)
+    # Wrap inclination angles outside the domain [-π/2, π/2], which
+    # simplifies the rest of the function.
+    needs_wrapping = inclinations > RIGHT_ANGLE
+    wrapped = inclinations - (2 * RIGHT_ANGLE)
+    inclinations = np.where(needs_wrapping, wrapped, inclinations)
 
-    angle = FIXED_ANGLE if opening_angle is None else opening_angle
+    # If no `opening_angles` are specified, use the fixed angle stored
+    # in the constant `FIXED_ANGLE`. Otherwise, use `opening_angles`.
+    angle = FIXED_ANGLE if opening_angles is None else opening_angles
 
-    within_maximum = inclination <  angle
-    within_minimum = inclination > -angle
+    within_maximum = inclinations <  angle
+    within_minimum = inclinations > -angle
     return within_maximum & within_minimum
 
 
-def is_detectable(flux: np.ndarray, upper_limit: np.ndarray) -> np.ndarray:
-    return flux >= upper_limit
+def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
+    return fluxes >= upper_limits
 
 
 def realise(events: dict[str, Event]) -> EventSample:
@@ -78,15 +87,19 @@ def realise(events: dict[str, Event]) -> EventSample:
     # Collect all of the events into a single array.
     collector = np.concatenate([*events.values()], axis = -1)
 
+    # Randomly choose fluxes from the set of events and determine which
+    # of these fluxes are potentially detectable.
     choices = random.choice(collector, size = sample_size, shuffle = False)
     for model in MODELS:
-        flux = choices[f'flux_{model}']
-        sample[f'predicted_{model}'] = flux
-        sample[f'detectable_{model}'] = is_detectable(flux, choices['upper_limit'])
+        fluxes = choices[f'flux_{model}']
+        sample[f'predicted_{model}'] = fluxes
+        sample[f'detectable_{model}'] = is_detectable(fluxes,
+                                                      choices['upper_limit'])
 
-    sample['visible_fixed'] = is_visible(choices['inclination'])
-    sample['visible_uniform'] = is_visible(
-        choices['inclination'], choices['opening_angle'])
+    # Determine the visibility of the chosen fluxes.
+    inclinations = choices['inclination']
+    sample['visible_f'] = is_visible(inclinations)
+    sample['visible_u'] = is_visible(inclinations, choices['opening_angle'])
 
     return sample
 
@@ -94,6 +107,7 @@ def realise(events: dict[str, Event]) -> EventSample:
 def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
     collector = []
 
+    # Repeatedly sample the set of events and collect the results.
     for realisation in range(0, realisations):
         print(f'Realising {realisation + 1:4d} of {realisations:4d}...')
         sample = realise(events)
@@ -105,40 +119,45 @@ def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
 def plot_single(sample: EventSample) -> None:
     figure = plt.figure(figsize = [12, 12])
 
-    visible_uniform = sample['visible_uniform']
-    visible_fixed = sample['visible_fixed']
-    visible = visible_fixed
+    visible_u = sample['visible_u']
+    visible_f = sample['visible_f']
+    visible = visible_f
 
     for index, model in enumerate(MODELS):
         axes = figure.add_subplot(2, 2, index + 1)
 
         fluxes = sample[f'predicted_{model}']
-        uniform = fluxes[visible_uniform]
-        fixed = fluxes[visible_fixed]
-        detectable = fluxes[sample[f'detectable_{model}'] & visible]
+        fluxes_u = fluxes[visible_u]
+        fluxes_f = fluxes[visible_f]
+        fluxes_d = fluxes[sample[f'detectable_{model}'] & visible]
 
-        percent_uniform = uniform.size / fluxes.size * 100
-        percent_fixed = fixed.size / fluxes.size * 100
-        percent_detected = detectable.size / fluxes.size * 100
+        # Calculate the percentage of fluxes that are visible in the
+        # uniform and fixed cases and are detectable.
+        percent_u = fluxes_u.size / fluxes.size * 100
+        percent_f = fluxes_f.size / fluxes.size * 100
+        percent_d = fluxes_d.size / fluxes.size * 100
 
         maximum = np.max(fluxes)
         minimum = np.min(fluxes)
         bins = np.logspace(np.log10(minimum), np.log10(maximum), 20)
 
+        # Plot the fluxes for each case as histograms.
         axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
-        axes.hist(uniform, bins, color = '#a9a9a9',
-            label = f'Uniform ({uniform.size}, {percent_uniform:.0f}%)')
-        axes.hist(fixed, bins, color = '#c9c9c9',
-            label = f'Fixed ({fixed.size}, {percent_fixed:.0f}%)')
-        axes.hist(detectable, bins, color = '#eb3a2e',
-            label = f'Detectable ({detectable.size}, {percent_detected:.0f}%)')
+        axes.hist(fluxes_u, bins, color = '#a9a9a9',
+            label = f'Uniform ({fluxes_u.size}, {percent_u:.0f}%)')
+        axes.hist(fluxes_f, bins, color = '#c9c9c9',
+            label = f'Fixed ({fluxes_f.size}, {percent_f:.0f}%)')
+        axes.hist(fluxes_d, bins, color = '#eb3a2e',
+            label = f'Detectable ({fluxes_d.size}, {percent_d:.0f}%)')
 
+        # Configure the subplot.
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
         axes.set_ylabel('Number')
         axes.set_xscale('log')
         axes.legend()
 
+    # Configure the plot.
     figure.suptitle(f'Population Sample (Size: {sample.size})', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
@@ -151,10 +170,10 @@ def plot(samples: list[EventSample]) -> None:
     figure = plt.figure(figsize = [12, 12])
 
     for index, model in enumerate(MODELS):
-        axes = figure.add_subplot(2, 2, index + 1)
         key = f'predicted_{model}'
 
-        # Determine the maximum and minimum across all points of every sample.
+        # Find the maximum and minimum across all points of every
+        # sample to determine a uniform set of histogram bins.
         net_maximum = np.max(samples[0][key])
         net_minimum = np.min(samples[0][key])
         for sample in samples:
@@ -170,41 +189,46 @@ def plot(samples: list[EventSample]) -> None:
 
         bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
 
-        histograms = np.empty(shape = (bins.size - 1, 0))
-        histograms_u = np.copy(histograms)
-        histograms_f = np.copy(histograms)
-        histograms_d = np.copy(histograms)
+        histograms_i = np.empty(shape = (bins.size - 1, 0))
+        histograms_u = np.copy(histograms_i)
+        histograms_f = np.copy(histograms_i)
+        histograms_d = np.copy(histograms_i)
 
-        # Compute the histogram of each sample.
+        # Compute the histogram of each sample for the isotropic,
+        # uniform and fixed opening angle cases, as well as the
+        # histogram for detectable fluxes.
         for sample in samples:
             fluxes = sample[key]
             histogram, _ = np.histogram(fluxes, bins)
-            histograms = np.column_stack((histograms, histogram))
+            histograms_i = np.column_stack((histograms_i, histogram))
 
-            uniform = fluxes[sample['visible_uniform']]
-            histogram, _ = np.histogram(uniform, bins)
+            fluxes_u = fluxes[sample['visible_u']]
+            histogram, _ = np.histogram(fluxes_u, bins)
             histograms_u = np.column_stack((histograms_u, histogram))
 
-            fixed = fluxes[sample['visible_fixed']]
-            histogram, _ = np.histogram(fixed, bins)
+            fluxes_f = fluxes[sample['visible_f']]
+            histogram, _ = np.histogram(fluxes_f, bins)
             histograms_f = np.column_stack((histograms_f, histogram))
 
-            visible = sample['visible_fixed']
-            detectable = fluxes[sample[f'detectable_{model}'] & visible]
-            histogram, _ = np.histogram(detectable, bins)
+            # Only include detectable fluxes that are also visible.
+            visible = sample['visible_f']
+            fluxes_d = fluxes[sample[f'detectable_{model}'] & visible]
+            histogram, _ = np.histogram(fluxes_d, bins)
             histograms_d = np.column_stack((histograms_d, histogram))
 
-        median = np.empty(shape = bins.size - 1)
-        median_u = np.copy(median)
-        median_f = np.copy(median)
-        median_d = np.copy(median)
+        median_i = np.empty(shape = bins.size - 1)
+        median_u = np.copy(median_i)
+        median_f = np.copy(median_i)
+        median_d = np.copy(median_i)
         for b in range(bins.size - 1):
-            median[b] = np.median(histograms[b])
+            median_i[b] = np.median(histograms_i[b])
             median_u[b] = np.median(histograms_u[b])
             median_f[b] = np.median(histograms_f[b])
             median_d[b] = np.median(histograms_d[b])
 
-        axes.stairs(median, bins, fill = True, color = '#bcefb7',
+        # Plot the median histograms.
+        axes = figure.add_subplot(2, 2, index + 1)
+        axes.stairs(median_i, bins, fill = True, color = '#bcefb7',
             label = 'Isotropic')
         axes.stairs(median_u, bins, fill = True, color = '#a9a9a9',
             label = 'Uniform')
@@ -213,12 +237,14 @@ def plot(samples: list[EventSample]) -> None:
         axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
             label = 'Detectable')
 
+        # Configure the subplot.
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
         axes.set_ylabel('Number')
         axes.set_xscale('log')
         axes.legend()
 
+    # Configure the plot.
     figure.suptitle(f'Population Sample', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
@@ -226,7 +252,7 @@ def plot(samples: list[EventSample]) -> None:
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-p', action = 'store_true',
         help = 'Exclusively run the preprocessor.')
-    parser.add_argument('-r', type = int, default = 1,
+    parser.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
         help = 'The number of realisations to process.')
     parser.add_argument('-s', type = int, default = DEFAULT_SEED,
         help = 'The seed used for the random number generator.')
@@ -237,6 +263,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def main() -> None:
+    '''Main entrypoint.'''
+
     parser = argparse.ArgumentParser(prog = 'limits',
         description = 'Estimates the upper limits of the binary black hole ' \
             'population visible with Fermi-GBM.')
