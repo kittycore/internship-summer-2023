@@ -136,6 +136,51 @@ def plot(samples: list[EventSample]) -> None:
         plot_single(samples[0])
         return
 
+    figure = plt.figure(figsize = [12, 12])
+
+    for index, model in enumerate(MODELS):
+        axes = figure.add_subplot(2, 2, index + 1)
+        key = f'predicted_{model}'
+
+        # Determine the maximum and minimum across all points of every sample.
+        net_maximum = np.max(samples[0][key])
+        net_minimum = np.min(samples[0][key])
+        for sample in samples:
+            fluxes = sample[key]
+
+            maximum = np.max(fluxes)
+            minimum = np.min(fluxes)
+
+            if maximum > net_maximum:
+                net_maximum = maximum
+            if minimum < net_minimum:
+                net_minimum = minimum
+
+        bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
+        histograms = np.empty(shape = (bins.size - 1, 0))
+
+        # Compute the histogram of each sample.
+        for sample in samples:
+            fluxes = sample[key]
+            histogram, _ = np.histogram(fluxes, bins)
+            histograms = np.column_stack((histograms, histogram))
+
+        median = np.empty(shape = bins.size - 1)
+        for b in range(bins.size - 1):
+            median[b] = np.median(histograms[b])
+
+        axes.stairs(median, bins, fill = True,
+            color = '#bcefb7', label = 'Isotropic')
+
+        axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
+        axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
+        axes.set_ylabel('Number')
+        axes.set_xscale('log')
+        axes.legend()
+
+    figure.suptitle(f'Population Sample', fontsize = 14)
+    figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
+
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-p', action = 'store_true',
