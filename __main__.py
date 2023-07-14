@@ -6,8 +6,6 @@ import argparse
 import preprocess
 from preprocess import Event
 
-from typing import cast
-
 
 # The opening angle for the 'fixed' case, in radians.
 FIXED_ANGLE = np.deg2rad(20)
