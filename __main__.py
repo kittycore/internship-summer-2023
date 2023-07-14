@@ -157,7 +157,10 @@ def plot(samples: list[EventSample]) -> None:
                 net_minimum = minimum
 
         bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
+
         histograms = np.empty(shape = (bins.size - 1, 0))
+        histograms_u = np.copy(histograms)
+        histograms_f = np.copy(histograms)
 
         # Compute the histogram of each sample.
         for sample in samples:
@@ -165,12 +168,28 @@ def plot(samples: list[EventSample]) -> None:
             histogram, _ = np.histogram(fluxes, bins)
             histograms = np.column_stack((histograms, histogram))
 
+            uniform = fluxes[sample['visible_uniform']]
+            histogram, _ = np.histogram(uniform, bins)
+            histograms_u = np.column_stack((histograms_u, histogram))
+
+            fixed = fluxes[sample['visible_fixed']]
+            histogram, _ = np.histogram(fixed, bins)
+            histograms_f = np.column_stack((histograms_f, histogram))
+
         median = np.empty(shape = bins.size - 1)
+        median_u = np.copy(median)
+        median_f = np.copy(median)
         for b in range(bins.size - 1):
             median[b] = np.median(histograms[b])
+            median_u[b] = np.median(histograms_u[b])
+            median_f[b] = np.median(histograms_f[b])
 
-        axes.stairs(median, bins, fill = True,
-            color = '#bcefb7', label = 'Isotropic')
+        axes.stairs(median, bins, fill = True, color = '#bcefb7',
+            label = 'Isotropic')
+        axes.stairs(median_u, bins, fill = True, color = '#a9a9a9',
+            label = 'Uniform')
+        axes.stairs(median_f, bins, fill = True, color = '#c9c9c9',
+            label = 'Fixed')
 
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
