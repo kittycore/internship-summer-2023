@@ -69,6 +69,10 @@ def is_visible(
     return within_maximum & within_minimum
 
 
+def is_detectable(flux: np.ndarray, upper_limit: np.ndarray) -> np.ndarray:
+    return flux >= upper_limit
+
+
 def realise(events: dict[str, Event]) -> EventSample:
     sample_size = len(events)
     sample = EventSample(sample_size)
@@ -78,7 +82,9 @@ def realise(events: dict[str, Event]) -> EventSample:
 
     choices = random.choice(collector, size = sample_size, shuffle = False)
     for model in MODELS:
-        sample[f'predicted_{model}'] = choices[f'flux_{model}']
+        flux = choices[f'flux_{model}']
+        sample[f'predicted_{model}'] = flux
+        sample[f'detectable_{model}'] = is_detectable(flux, choices['upper_limit'])
 
     sample['visible_fixed'] = is_visible(choices['inclination'])
     sample['visible_uniform'] = is_visible(
@@ -101,15 +107,21 @@ def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
 def plot_single(sample: EventSample) -> None:
     figure = plt.figure(figsize = [12, 12])
 
+    visible_uniform = sample['visible_uniform']
+    visible_fixed = sample['visible_fixed']
+    visible = visible_fixed
+
     for index, model in enumerate(MODELS):
         axes = figure.add_subplot(2, 2, index + 1)
 
         fluxes = sample[f'predicted_{model}']
-        uniform = fluxes[sample['visible_uniform']]
-        fixed = fluxes[sample['visible_fixed']]
+        uniform = fluxes[visible_uniform]
+        fixed = fluxes[visible_fixed]
+        detectable = fluxes[sample[f'detectable_{model}'] & visible]
 
         percent_uniform = uniform.size / fluxes.size * 100
         percent_fixed = fixed.size / fluxes.size * 100
+        percent_detected = detectable.size / fluxes.size * 100
 
         maximum = np.max(fluxes)
         minimum = np.min(fluxes)
@@ -120,6 +132,8 @@ def plot_single(sample: EventSample) -> None:
             label = f'Uniform ({uniform.size}, {percent_uniform:.0f}%)')
         axes.hist(fixed, bins, color = '#c9c9c9',
             label = f'Fixed ({fixed.size}, {percent_fixed:.0f}%)')
+        axes.hist(detectable, bins, color = '#eb3a2e',
+            label = f'Detectable ({detectable.size}, {percent_detected:.0f}%)')
 
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
@@ -161,6 +175,7 @@ def plot(samples: list[EventSample]) -> None:
         histograms = np.empty(shape = (bins.size - 1, 0))
         histograms_u = np.copy(histograms)
         histograms_f = np.copy(histograms)
+        histograms_d = np.copy(histograms)
 
         # Compute the histogram of each sample.
         for sample in samples:
@@ -176,13 +191,20 @@ def plot(samples: list[EventSample]) -> None:
             histogram, _ = np.histogram(fixed, bins)
             histograms_f = np.column_stack((histograms_f, histogram))
 
+            visible = sample['visible_fixed']
+            detectable = fluxes[sample[f'detectable_{model}'] & visible]
+            histogram, _ = np.histogram(detectable, bins)
+            histograms_d = np.column_stack((histograms_d, histogram))
+
         median = np.empty(shape = bins.size - 1)
         median_u = np.copy(median)
         median_f = np.copy(median)
+        median_d = np.copy(median)
         for b in range(bins.size - 1):
             median[b] = np.median(histograms[b])
             median_u[b] = np.median(histograms_u[b])
             median_f[b] = np.median(histograms_f[b])
+            median_d[b] = np.median(histograms_d[b])
 
         axes.stairs(median, bins, fill = True, color = '#bcefb7',
             label = 'Isotropic')
@@ -190,6 +212,8 @@ def plot(samples: list[EventSample]) -> None:
             label = 'Uniform')
         axes.stairs(median_f, bins, fill = True, color = '#c9c9c9',
             label = 'Fixed')
+        axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
+            label = 'Detectable')
 
         axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
         axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
