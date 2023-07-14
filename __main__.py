@@ -90,7 +90,8 @@ def realise(events: dict[str, Event]) -> EventSample:
 def process(events: dict[str, Event], realisations: int) -> EventSample:
     collector = realise(events)
 
-    for _ in range(1, realisations):
+    for realisation in range(1, realisations):
+        print(f'Realising {realisation + 1:4d} of {realisations:4d}...')
         sample = realise(events)
         collector = np.concatenate([collector, sample], axis = -1)
 
