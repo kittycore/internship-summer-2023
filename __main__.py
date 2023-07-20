@@ -90,6 +90,8 @@ def is_visible(
 
 
 def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
+    blocked = upper_limits < 0
+    upper_limits = np.where(blocked, np.finfo(np.float64).max, upper_limits)
     return fluxes >= upper_limits
 
 
