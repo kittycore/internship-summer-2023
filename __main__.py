@@ -46,6 +46,9 @@ DEFAULT_BIN_COUNT = 20
 # Default number of realisations.
 DEFAULT_REALISATIONS = 1
 
+# The maximum number of realisations to plot separately.
+MAXIMUM_PLOTS = 5
+
 
 class EventSample(np.ndarray):
     DTYPE = [
@@ -253,12 +256,21 @@ def main() -> None:
 
     model = args['m']
     case = args['c']
+    realisations = args['r']
 
     events = preprocess.preprocess(arguments)
-    samples = process(events, model, args['r'])
-    plot(samples, model, case)
+    samples = process(events, model, realisations)
 
-    plt.savefig(f'{model}_{case}.png')
+    # Plot a number of realisations separately, up to `MAXIMUM_PLOTS`.
+    if realisations > 1:
+        plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
+        for p in range(plots):
+            plot([samples[p]], model, case)
+            plt.savefig(f'{model}_{case}_realisation_{p + 1}.png')
+
+    plot(samples, model, case)
+    suffix = '_median' if realisations > 1 else ''
+    plt.savefig(f'{model}_{case}{suffix}.png')
     plt.show()
 
 
