@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Standard library modules.
-import argparse
+import argparse, os
 
 # First-party modules.
 import preprocess
@@ -263,16 +263,24 @@ def main() -> None:
     events = preprocess.preprocess(arguments)
     samples = process(events, model, realisations)
 
+    # Create a folder to store the plots in if it doesn't exist.
+    folder = os.path.join('.', 'figures')
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
     # Plot a number of realisations separately, up to `MAXIMUM_PLOTS`.
     if realisations > 1:
         plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
         for p in range(plots):
             plot([samples[p]], model, case)
-            plt.savefig(f'{model}_{case}_realisation_{p + 1}.png')
+            filename = os.path.join(folder,
+                                   f'{model}_{case}_realisation_{p + 1}.png')
+            plt.savefig(filename)
 
     plot(samples, model, case)
     suffix = '_median' if realisations > 1 else ''
-    plt.savefig(f'{model}_{case}{suffix}.png')
+    filename = os.path.join(folder, f'{model}_{case}{suffix}.png')
+    plt.savefig(filename)
     plt.show()
 
 
