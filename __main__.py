@@ -9,6 +9,9 @@ import argparse
 import preprocess
 from preprocess import Event # To simplify type hints.
 
+# Typing hint modules.
+from typing import cast
+
 
 # The opening angle for the 'fixed' case (in radians).
 FIXED_ANGLE = np.deg2rad(20)
@@ -23,6 +26,13 @@ MODELS_EXPANDED = {
     'NU': 'Neutrino-Antineutrino Annihilation',
     'BZ': 'Blandford-Znajek',
     'GW': 'Gravitational Wave Energy Conversion',
+}
+
+CASES = ['i', 'u', 'f']
+CASES_EXPANDED = {
+    'i': 'Isotropic',
+    'u': 'Uniform',
+    'f': 'Fixed',
 }
 
 # Default seed for the random number generator. The seed can be
@@ -80,7 +90,7 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
     return fluxes >= upper_limits
 
 
-def realise(events: dict[str, Event]) -> EventSample:
+def realise(events: dict[str, Event], model: str) -> EventSample:
     sample_size = len(events)
     sample = EventSample(sample_size)
 
@@ -90,11 +100,11 @@ def realise(events: dict[str, Event]) -> EventSample:
     # Randomly choose fluxes from the set of events and determine which
     # of these fluxes are potentially detectable.
     choices = random.choice(collector, size = sample_size, shuffle = False)
-    for model in MODELS:
-        fluxes = choices[f'flux_{model}']
-        sample[f'predicted_{model}'] = fluxes
-        sample[f'detectable_{model}'] = is_detectable(fluxes,
-                                                      choices['upper_limit'])
+
+    fluxes = choices[f'flux_{model}']
+    sample[f'predicted_{model}'] = fluxes
+    sample[f'detectable_{model}'] = is_detectable(fluxes,
+                                                  choices['upper_limit'])
 
     # Determine the visibility of the chosen fluxes.
     inclinations = choices['inclination']
@@ -104,102 +114,111 @@ def realise(events: dict[str, Event]) -> EventSample:
     return sample
 
 
-def process(events: dict[str, Event], realisations: int) -> list[EventSample]:
+def process(
+    events: dict[str, Event], model: str, realisations: int
+) -> list[EventSample]:
     collector = []
 
     # Repeatedly sample the set of events and collect the results.
     for realisation in range(0, realisations):
         print(f'Realising {realisation + 1:4d} of {realisations:4d}...')
-        sample = realise(events)
+        sample = realise(events, model)
         collector.append(sample)
 
     return collector
 
 
-def plot(samples: list[EventSample]) -> None:
-    figure = plt.figure(figsize = [12, 12])
+def plot(samples: list[EventSample], model: str, case: str) -> None:
+    figure = cast(plt.Figure, plt.figure())
 
-    for index, model in enumerate(MODELS):
-        key = f'predicted_{model}'
+    key = f'predicted_{model}'
+    anisotropic = case[0] != 'i'
+    key_visible = f'visible_{case[0]}'
 
-        # Find the maximum and minimum across all points of every
-        # sample to determine a uniform set of histogram bins.
-        net_maximum = np.max(samples[0][key])
-        net_minimum = np.min(samples[0][key])
-        for sample in samples:
-            fluxes = sample[key]
+    # Find the maximum and minimum across all points of every
+    # sample to determine a uniform set of histogram bins.
+    net_maximum = np.max(samples[0][key])
+    net_minimum = np.min(samples[0][key])
+    for sample in samples:
+        fluxes = sample[key]
 
-            maximum = np.max(fluxes)
-            minimum = np.min(fluxes)
+        maximum = np.max(fluxes)
+        minimum = np.min(fluxes)
 
-            if maximum > net_maximum:
-                net_maximum = maximum
-            if minimum < net_minimum:
-                net_minimum = minimum
+        if maximum > net_maximum:
+            net_maximum = maximum
+        if minimum < net_minimum:
+            net_minimum = minimum
 
-        bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
+    bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
 
-        histograms_i = np.empty(shape = (bins.size - 1, 0))
-        histograms_u = np.copy(histograms_i)
-        histograms_f = np.copy(histograms_i)
-        histograms_d = np.copy(histograms_i)
+    histograms_i = np.empty(shape = (bins.size - 1, 0))
+    histograms_d = np.copy(histograms_i)
+    histograms_v = np.copy(histograms_i)
 
-        # Compute the histogram of each sample for the isotropic,
-        # uniform and fixed opening angle cases, as well as the
-        # histogram for detectable fluxes.
-        for sample in samples:
-            fluxes = sample[key]
-            histogram, _ = np.histogram(fluxes, bins)
-            histograms_i = np.column_stack((histograms_i, histogram))
+    # Compute the histogram of each sample for the isotropic,
+    # uniform and fixed opening angle cases, as well as the
+    # histogram for detectable fluxes.
+    fluxes_d = None
+    for sample in samples:
+        fluxes = sample[key]
+        histogram, _ = np.histogram(fluxes, bins)
+        histograms_i = np.column_stack((histograms_i, histogram))
 
-            fluxes_u = fluxes[sample['visible_u']]
-            histogram, _ = np.histogram(fluxes_u, bins)
-            histograms_u = np.column_stack((histograms_u, histogram))
+        if anisotropic:
+            fluxes_v = fluxes[sample[key_visible]]
+            histogram, _ = np.histogram(fluxes_v, bins)
+            histograms_v = np.column_stack((histograms_v, histogram))
 
-            fluxes_f = fluxes[sample['visible_f']]
-            histogram, _ = np.histogram(fluxes_f, bins)
-            histograms_f = np.column_stack((histograms_f, histogram))
-
-            # Only include detectable fluxes that are also visible.
-            visible = sample['visible_f']
+            visible = sample[key_visible]
             fluxes_d = fluxes[sample[f'detectable_{model}'] & visible]
-            histogram, _ = np.histogram(fluxes_d, bins)
-            histograms_d = np.column_stack((histograms_d, histogram))
+        else:
+            fluxes_d = fluxes[sample[f'detectable_{model}']]
 
-        median_i = np.empty(shape = bins.size - 1)
-        median_u = np.copy(median_i)
-        median_f = np.copy(median_i)
-        median_d = np.copy(median_i)
-        for b in range(bins.size - 1):
-            median_i[b] = np.median(histograms_i[b])
-            median_u[b] = np.median(histograms_u[b])
-            median_f[b] = np.median(histograms_f[b])
-            median_d[b] = np.median(histograms_d[b])
+        histogram, _ = np.histogram(fluxes_d, bins)
+        histograms_d = np.column_stack((histograms_d, histogram))
 
-        # Plot the median histograms.
-        axes = figure.add_subplot(2, 2, index + 1)
-        axes.stairs(median_i, bins, fill = True, color = '#bcefb7',
-            label = 'Isotropic')
-        axes.stairs(median_u, bins, fill = True, color = '#a9a9a9',
-            label = 'Uniform')
-        axes.stairs(median_f, bins, fill = True, color = '#c9c9c9',
-            label = 'Fixed')
-        axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
-            label = 'Detectable')
+    median_i = np.empty(shape = bins.size - 1)
+    median_d = np.copy(median_i)
+    median_v = np.copy(median_i)
+    for b in range(bins.size - 1):
+        median_i[b] = np.median(histograms_i[b])
+        median_d[b] = np.median(histograms_d[b])
 
-        # Configure the subplot.
-        axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
-        axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
-        axes.set_ylabel('Number')
-        axes.set_xscale('log')
-        axes.legend()
+        if anisotropic:
+            median_v[b] = np.median(histograms_v[b])
+
+    # Plot the median histograms.
+    axes = cast(plt.Axes, figure.subplots())
+    axes.stairs(median_i, bins, fill = True, color = '#bcefb7',
+        label = 'Isotropic')
+
+    if anisotropic:
+        axes.stairs(median_v, bins, fill = True, color = '#a9a9a9',
+            label = f'Visible ({CASES_EXPANDED[case[0]]})')
+
+    axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
+        label = 'Detectable')
+
+    # Configure the subplot.
+    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
+    axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
+    axes.set_ylabel('Number')
+    axes.set_xscale('log') # type: ignore
+    axes.legend()
 
     # Configure the plot.
-    figure.suptitle(f'Population Sample', fontsize = 14)
+    figure.suptitle('Population Sample', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument('-c',
+        choices = [*CASES, 'isotropic', 'uniform', 'fixed'],
+        default = 'i', help = 'Which case to plot.')
+    parser.add_argument('-m', choices = MODELS, default = 'QQ',
+        help = 'Which model to plot.')
+
     parser.add_argument('-p', action = 'store_true',
         help = 'Exclusively run the preprocessor.')
     parser.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
@@ -232,11 +251,14 @@ def main() -> None:
     global random
     random = np.random.default_rng(args['s'])
 
-    events = preprocess.preprocess(arguments)
-    samples = process(events, args['r'])
-    plot(samples)
+    model = args['m']
+    case = args['c']
 
-    plt.savefig('population.png')
+    events = preprocess.preprocess(arguments)
+    samples = process(events, model, args['r'])
+    plot(samples, model, case)
+
+    plt.savefig(f'{model}_{case}.png')
     plt.show()
 
 
