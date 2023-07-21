@@ -248,6 +248,14 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
+    '''Adds command-line arguments relevant to this module to an
+    argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to add
+            the relevant command-line arguments to.
+    '''
+
     parser.add_argument('-c',
         choices = [*CASES, 'isotropic', 'uniform', 'fixed'],
         default = 'i', help = 'Which case to plot.')
