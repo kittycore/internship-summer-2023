@@ -152,6 +152,18 @@ def realise(events: dict[str, Event], model: str) -> EventSample:
 def process(
     events: dict[str, Event], model: str, realisations: int
 ) -> list[EventSample]:
+    '''Processes a set of events for a given `model` of relativistic
+    jet, returning a set of samples of length `realisations`.
+
+    Args:
+        events (dict[str, Event]): A set of events to sample from.
+        model (str): Which model of relativistic jet to sample from.
+        realisations (int): The number of samples to produce.
+
+    Returns:
+        list[EventSample]: A list of samples of length `realisations`.
+    '''
+
     collector = []
 
     # Repeatedly sample the set of events and collect the results.
