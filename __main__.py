@@ -164,6 +164,18 @@ def process(
 
 
 def plot(samples: list[EventSample], model: str, case: str) -> None:
+    '''Plots a histogram of the predicted fluxes within `samples` for a
+    given `model` of relativistic jet and `case` of opening angle. If
+    more than one sample is given, then the median of the samples is
+    plotted instead.
+
+    Args:
+        samples (list[EventSample]): A list of samples.
+        model (str): Which model of relativistic jet to plot.
+        case (str): Which case of opening angle to plot; either
+            isotropic, uniform or fixed.
+    '''
+
     figure = cast(plt.Figure, plt.figure())
 
     key = f'predicted_{model}'
