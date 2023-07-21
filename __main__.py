@@ -74,6 +74,22 @@ def is_visible(
     inclinations: np.ndarray,
     opening_angles: np.ndarray | None = None
 ) -> np.ndarray:
+    '''Determines the visibility of a set of events based upon the
+    inclination and the opening angle of each relativistic jet.
+
+    Args:
+        inclinations (np.ndarray): An array containing inclinations for
+            each jet associated with a set of events.
+        opening_angles (np.ndarray | None, optional): An array
+            containing opening angles for the uniform case. If None,
+            then the angle specified by the constant `FIXED_ANGLE` is
+            used instead. Defaults to None.
+
+    Returns:
+        np.ndarray: An array of booleans specifying whether the event
+            is visible or not from Earth.
+    '''
+
     # Wrap inclination angles outside the domain [-π/2, π/2], which
     # simplifies the rest of the function.
     needs_wrapping = inclinations > RIGHT_ANGLE
