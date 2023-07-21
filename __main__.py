@@ -106,6 +106,20 @@ def is_visible(
 
 
 def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
+    '''Determines the detectability of a set of events based upon the
+    fluxes of each jet and the upper limits of Fermi-GBM.
+
+    Args:
+        fluxes (np.ndarray): An array containing fluxes for each jet to
+            compare against the upper limits.
+        upper_limits (np.ndarray): An array containing the upper limits
+            of Fermi-GBM for each event.
+
+    Returns:
+        np.ndarray: An array of booleans specifying whether the event
+            is detectable or not.
+    '''
+
     blocked = upper_limits < 0
     upper_limits = np.where(blocked, np.finfo(np.float64).max, upper_limits)
     return fluxes >= upper_limits
