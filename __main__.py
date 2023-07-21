@@ -126,6 +126,16 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
 
 
 def realise(events: dict[str, Event], model: str) -> EventSample:
+    '''Samples for a set of events for a given `model`.
+
+    Args:
+        events (dict[str, Event]): A set of events to sample from.
+        model (str): Which model of relativistic jet to sample from.
+
+    Returns:
+        EventSample: A realised sample from the set of events.
+    '''
+
     sample_size = len(events)
     sample = EventSample(sample_size)
 
