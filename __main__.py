@@ -28,7 +28,9 @@ MODELS_EXPANDED = {
     'GW': 'Gravitational Wave Energy Conversion',
 }
 
+# Cases of opening angles for the relativistic jets.
 CASES = ['i', 'u', 'f']
+# More descriptive names for each case.
 CASES_EXPANDED = {
     'i': 'Isotropic',
     'u': 'Uniform',
