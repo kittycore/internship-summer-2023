@@ -51,6 +51,9 @@ DEFAULT_REALISATIONS = 1
 # The maximum number of realisations to plot separately.
 MAXIMUM_PLOTS = 5
 
+UPPER_PERCENTILE = 84
+LOWER_PERCENTILE = 16
+
 
 class EventSample(np.ndarray):
     DTYPE = [
@@ -253,12 +256,21 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
     median_i = np.empty(shape = bins.size - 1)
     median_d = np.copy(median_i)
     median_v = np.copy(median_i)
+
+    upper_i = np.copy(median_i)
+    lower_i = np.copy(median_i)
+
     for b in range(bins.size - 1):
         median_i[b] = np.median(histograms_i[b])
         median_d[b] = np.median(histograms_d[b])
 
         if anisotropic:
             median_v[b] = np.median(histograms_v[b])
+
+        # TODO: Split single sample plotting and median plotting.
+        if len(samples) > 1:
+            upper_i[b] = np.percentile(histograms_i[b], UPPER_PERCENTILE)
+            lower_i[b] = np.percentile(histograms_i[b], LOWER_PERCENTILE)
 
     # Plot the median histograms.
     axes = cast(plt.Axes, figure.subplots())
@@ -271,6 +283,10 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
 
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
         label = 'Detectable')
+
+    if len(samples) > 1:
+        axes.stairs(upper_i, bins, color = '#78ab73')
+        axes.stairs(lower_i, bins, color = '#78ab73')
 
     # Configure the subplot.
     axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
