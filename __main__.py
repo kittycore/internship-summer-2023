@@ -1,4 +1,5 @@
 # Third-party modules.
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -190,7 +191,7 @@ def process(
     return collector
 
 
-def plot(samples: list[EventSample], model: str, case: str) -> None:
+def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     '''Plots a histogram of the predicted fluxes within `samples` for a
     given `model` of relativistic jet and `case` of opening angle. If
     more than one sample is given, then the median of the samples is
@@ -201,6 +202,9 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
         model (str): Which model of relativistic jet to plot.
         case (str): Which case of opening angle to plot; either
             isotropic, uniform or fixed.
+
+    Returns:
+        plt.Figure: The plotted figure.
     '''
 
     figure = cast(plt.Figure, plt.figure())
@@ -299,6 +303,8 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
     figure.suptitle('Population Sample', fontsize = 14)
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
+    return figure
+
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''Adds command-line arguments relevant to this module to an
@@ -363,10 +369,11 @@ def main() -> None:
     if realisations > 1:
         plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
         for p in range(plots):
-            plot([samples[p]], model, case)
+            figure = plot([samples[p]], model, case)
             filename = os.path.join(folder,
                                    f'{model}_{case}_realisation_{p + 1}.png')
             plt.savefig(filename)
+            plt.close(figure)
 
     plot(samples, model, case)
     suffix = '_median' if realisations > 1 else ''
