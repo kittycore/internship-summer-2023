@@ -191,6 +191,48 @@ def process(
     return collector
 
 
+def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
+    figure = cast(plt.Figure, plt.figure())
+
+    anisotropic = case[0] != 'i'
+    key_predicted = f'predicted_{model}'
+    key_visible = f'visible_{case[0]}'
+
+    fluxes = sample[key_predicted]
+    visible = fluxes[sample[key_visible]] if anisotropic else None
+    detected = None
+    if anisotropic:
+        detected = fluxes[sample[f'detectable_{model}'] & sample[key_visible]]
+    else:
+        detected = fluxes[sample[f'detectable_{model}']]
+
+    maximum = np.max(fluxes)
+    minimum = np.min(fluxes)
+    bins = np.logspace(np.log10(minimum), np.log10(maximum), DEFAULT_BIN_COUNT)
+
+    axes = cast(plt.Axes, figure.subplots())
+    axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
+
+    if anisotropic:
+        axes.hist(visible, bins, color = '#a9a9a9',
+            label = f'Visible ({CASES_EXPANDED[case[0]]})')
+
+    axes.hist(detected, bins, color = '#eb3a2e', label = 'Detectable')
+
+    # Configure the subplot.
+    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
+    axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
+    axes.set_ylabel('Number')
+    axes.set_xscale('log') # type: ignore
+    axes.legend()
+
+    # Configure the plot.
+    figure.suptitle('Population Sample', fontsize = 14)
+    figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
+
+    return figure
+
+
 def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     '''Plots a histogram of the predicted fluxes within `samples` for a
     given `model` of relativistic jet and `case` of opening angle. If
@@ -206,6 +248,9 @@ def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     Returns:
         plt.Figure: The plotted figure.
     '''
+
+    if len(samples) == 1:
+        return plot_single(samples[0], model, case)
 
     figure = cast(plt.Figure, plt.figure())
 
@@ -271,10 +316,8 @@ def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
         if anisotropic:
             median_v[b] = np.median(histograms_v[b])
 
-        # TODO: Split single sample plotting and median plotting.
-        if len(samples) > 1:
-            upper_i[b] = np.percentile(histograms_i[b], UPPER_PERCENTILE)
-            lower_i[b] = np.percentile(histograms_i[b], LOWER_PERCENTILE)
+        upper_i[b] = np.percentile(histograms_i[b], UPPER_PERCENTILE)
+        lower_i[b] = np.percentile(histograms_i[b], LOWER_PERCENTILE)
 
     # Plot the median histograms.
     axes = cast(plt.Axes, figure.subplots())
@@ -288,9 +331,9 @@ def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
         label = 'Detectable')
 
-    if len(samples) > 1:
-        axes.stairs(upper_i, bins, color = '#78ab73')
-        axes.stairs(lower_i, bins, color = '#78ab73')
+    # Plot the confidence band.
+    axes.stairs(upper_i, bins, color = '#78ab73')
+    axes.stairs(lower_i, bins, color = '#78ab73')
 
     # Configure the subplot.
     axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
