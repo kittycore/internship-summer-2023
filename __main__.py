@@ -221,7 +221,8 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
         if minimum < net_minimum:
             net_minimum = minimum
 
-    bins = np.logspace(np.log10(net_minimum), np.log10(net_maximum), 20)
+    bins = np.logspace(
+        np.log10(net_minimum), np.log10(net_maximum), DEFAULT_BIN_COUNT)
 
     histograms_i = np.empty(shape = (bins.size - 1, 0))
     histograms_d = np.copy(histograms_i)
