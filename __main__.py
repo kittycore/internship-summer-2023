@@ -422,24 +422,23 @@ def main() -> None:
 
     events = preprocess.preprocess(arguments)
 
-    if model == 'all':
-        for m in MODELS:
-            name = MODELS_EXPANDED[m]
-            print(f'--> Processing model {name} ({m})...')
+    models = MODELS if model == 'all' else [model]
+    cases = CASES if case == 'all' else [case[0]]
 
-            samples = process(events, m, realisations)
-            print()
+    for m in models:
+        name = MODELS_EXPANDED[m]
+        print(f'--> Processing model {name} ({m})...')
 
-            for c in CASES:
-                print(f'-> Plotting {CASES_EXPANDED[c]}...')
-                plot(samples, m, c, realisations)
+        samples = process(events, m, realisations)
+        print()
 
-            print()
-            print(f'<-- Finished processing model {name} ({m}).')
-            print()
-    else:
-        samples = process(events, model, realisations)
-        plot(samples, model, case, realisations)
+        for c in cases:
+            print(f'-> Plotting {CASES_EXPANDED[c]}...')
+            plot(samples, m, c, realisations)
+
+        print()
+        print(f'<-- Finished processing model {name} ({m}).')
+        print()
 
     plt.show()
 
