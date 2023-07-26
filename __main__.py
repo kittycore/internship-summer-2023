@@ -1,27 +1,23 @@
-# Third-party modules.
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Standard library modules.
 import argparse, os
 
-# First-party modules.
 import preprocess
 from preprocess import Event # To simplify type hints.
 
-# Typing hint modules.
 from typing import cast
 
 
-# The opening angle for the 'fixed' case (in radians).
+# The opening angle for the 'fixed' case, in radians.
 FIXED_ANGLE = np.deg2rad(20)
-# A right angle (in radians).
+# A right angle, in radians.
 RIGHT_ANGLE = np.pi / 2
 
-# Models of the relativistic jet produced during a BBH merger.
+# Models for the relativistic jets sometimes produced during binary
+# black hole mergers.
 MODELS = ['QQ', 'NU', 'BZ', 'GW']
-# More descriptive names for each model.
+# More descriptive names for each of the above models.
 MODELS_EXPANDED = {
     'QQ': 'Charged Black Hole',
     'NU': 'Neutrino-Antineutrino Annihilation',
@@ -29,9 +25,10 @@ MODELS_EXPANDED = {
     'GW': 'Gravitational Wave Energy Conversion',
 }
 
-# Cases of opening angles for the relativistic jets.
+# Cases of opening angles for the relativistic jets sometimes produced
+# during binary black hole mergers.
 CASES = ['i', 'u', 'f']
-# More descriptive names for each case.
+# More descriptive names for each of the above cases.
 CASES_EXPANDED = {
     'i': 'Isotropic',
     'u': 'Uniform',
@@ -48,11 +45,12 @@ random: np.random.Generator
 DEFAULT_BIN_COUNT = 20
 # Default number of realisations.
 DEFAULT_REALISATIONS = 1
-
 # The maximum number of realisations to plot separately.
 MAXIMUM_PLOTS = 5
 
+# The upper percentile used for plotted confidence bands.
 UPPER_PERCENTILE = 84
+# The lower percentile used for plotted confidence bands.
 LOWER_PERCENTILE = 16
 
 
@@ -80,24 +78,26 @@ def is_visible(
     inclinations: np.ndarray,
     opening_angles: np.ndarray | None = None
 ) -> np.ndarray:
-    '''Determines the visibility of a set of events based upon the
-    inclination and the opening angle of each relativistic jet.
+    '''Determines the visibility of a set of events using the
+    inclination and the opening angle of the relativistic jet
+    associated with each event.
 
     Args:
         inclinations (np.ndarray): An array containing inclinations for
-            each jet associated with a set of events.
+            the relativistic jets associated with a set of events.
         opening_angles (np.ndarray | None, optional): An array
-            containing opening angles for the uniform case. If None,
-            then the angle specified by the constant `FIXED_ANGLE` is
-            used instead. Defaults to None.
+            containing opening angles for the relativistic jets
+            associated with a set of events. If None, then the angle
+            specified by the constant `FIXED_ANGLE` is used instead.
+            Defaults to None.
 
     Returns:
-        np.ndarray: An array of booleans specifying whether the event
-            is visible or not from Earth.
+        np.ndarray: An array of booleans indicating which events are
+            visible or not from Earth.
     '''
 
-    # Wrap inclination angles outside the domain [-π/2, π/2], which
-    # simplifies the rest of the function.
+    # Wrap inclination angles outside the domain [-π/2, π/2] to
+    # simplify the rest of the check.
     needs_wrapping = inclinations > RIGHT_ANGLE
     wrapped = inclinations - (2 * RIGHT_ANGLE)
     inclinations = np.where(needs_wrapping, wrapped, inclinations)
@@ -112,34 +112,39 @@ def is_visible(
 
 
 def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
-    '''Determines the detectability of a set of events based upon the
-    fluxes of each jet and the upper limits of Fermi-GBM.
+    '''Determines which events from a set of events are detectable by
+    Fermi-GBM using the the predicted fluxes of the relativistic jet
+    associated with each event and the upper limits of Fermi-GBM.
 
     Args:
-        fluxes (np.ndarray): An array containing fluxes for each jet to
-            compare against the upper limits.
+        fluxes (np.ndarray): An array containing the predicted fluxes
+            of the relativistic jets associated with a set of events.
         upper_limits (np.ndarray): An array containing the upper limits
             of Fermi-GBM for each event.
 
     Returns:
-        np.ndarray: An array of booleans specifying whether the event
-            is detectable or not.
+        np.ndarray: An array of booleans indicating which events are
+            detectable or not by Fermi-GBM.
     '''
 
+    # Fermi-GBM's view of some events will be blocked by the Earth.
+    # These are assigned a negative value by HealPy, so replace them
+    # with a large positive value to simplify the check.
     blocked = upper_limits < 0
     upper_limits = np.where(blocked, np.finfo(np.float64).max, upper_limits)
+
     return fluxes >= upper_limits
 
 
 def realise(events: dict[str, Event], model: str) -> EventSample:
-    '''Samples for a set of events for a given `model`.
+    '''Samples a set of events for a given `model`.
 
     Args:
-        events (dict[str, Event]): A set of events to sample from.
-        model (str): Which model of relativistic jet to sample from.
+        events (dict[str, Event]): A set of events to sample.
+        model (str): Which model of relativistic jet to sample.
 
     Returns:
-        EventSample: A realised sample from the set of events.
+        EventSample: A realisation of the set of events.
     '''
 
     sample_size = len(events)
@@ -169,22 +174,24 @@ def process(
     events: dict[str, Event], model: str, realisations: int
 ) -> list[EventSample]:
     '''Processes a set of events for a given `model` of relativistic
-    jet, returning a set of samples of length `realisations`.
+    jet, returning a set of samples of number `realisations`.
 
     Args:
-        events (dict[str, Event]): A set of events to sample from.
-        model (str): Which model of relativistic jet to sample from.
+        events (dict[str, Event]): A set of events to sample.
+        model (str): Which model of relativistic jet to sample.
         realisations (int): The number of samples to produce.
 
     Returns:
-        list[EventSample]: A list of samples of length `realisations`.
+        list[EventSample]: A set of samples of number `realisations`.
     '''
 
     collector = []
 
     # Repeatedly sample the set of events and collect the results.
-    for realisation in range(0, realisations):
-        print(f'Realising {realisation + 1:5d} of {realisations:5d}...')
+    digits = int(np.log10(realisations)) + 1
+    status = f'Realising {{0:{digits}d}} of {{1:{digits}d}}...'
+    for realisation in range(1, realisations + 1):
+        print(status.format(realisation, realisation))
         sample = realise(events, model)
         collector.append(sample)
 
@@ -192,12 +199,27 @@ def process(
 
 
 def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
+    '''Plots a histogram of a single `sample` for a given `model` of
+    relativistic jet and `case` of opening angle.
+
+    Args:
+        sample (EventSample): The sample to plot.
+        model (str): Which model of relativistic jet to plot.
+        case (str): Which case of opening angle to plot; either
+            isotropic, uniform or fixed.
+
+    Returns:
+        plt.Figure: The plotted figure.
+    '''
+
     figure = cast(plt.Figure, plt.figure())
 
     anisotropic = case[0] != 'i'
     key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
+    # Pick out the predicted fluxes, visible fluxes (if applicable),
+    # and detectable fluxes.
     fluxes = sample[key_predicted]
     visible = fluxes[sample[key_visible]] if anisotropic else None
     detected = None
@@ -206,6 +228,8 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     else:
         detected = fluxes[sample[f'detectable_{model}']]
 
+    # Determine the histogram binning based upon the minimum and
+    # maximum fluxes within log-space.
     maximum = np.max(fluxes)
     minimum = np.min(fluxes)
     bins = np.logspace(np.log10(minimum), np.log10(maximum), DEFAULT_BIN_COUNT)
@@ -213,6 +237,7 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     axes = cast(plt.Axes, figure.subplots())
     axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
 
+    # If `case` is not `isotropic`, plot the visible fluxes for `case`.
     if anisotropic:
         axes.hist(visible, bins, color = '#a9a9a9',
             label = f'Visible ({CASES_EXPANDED[case[0]]})')
@@ -234,12 +259,12 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
 
 
 def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure:
-    '''Plots a histogram of the median of predicted fluxes within
-    `samples` for a given `model` of relativistic jet and `case` of
-    opening angle.
+    '''Plots a histogram of the median of `samples` for a given `model`
+    of relativistic jet and `case` of opening angle.
 
     Args:
-        samples (list[EventSample]): A list of samples.
+        samples (list[EventSample]): A list of samples to determine the
+            median of.
         model (str): Which model of relativistic jet to plot.
         case (str): Which case of opening angle to plot; either
             isotropic, uniform or fixed.
@@ -250,16 +275,16 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     figure = cast(plt.Figure, plt.figure())
 
-    key = f'predicted_{model}'
     anisotropic = case[0] != 'i'
+    key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
-    # Find the maximum and minimum across all points of every
+    # Find the maximum and minimum among the fluxes across every
     # sample to determine a uniform set of histogram bins.
-    net_maximum = np.max(samples[0][key])
-    net_minimum = np.min(samples[0][key])
+    net_maximum = np.max(samples[0][key_predicted])
+    net_minimum = np.min(samples[0][key_predicted])
     for sample in samples:
-        fluxes = sample[key]
+        fluxes = sample[key_predicted]
 
         maximum = np.max(fluxes)
         minimum = np.min(fluxes)
@@ -281,7 +306,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     # histogram for detectable fluxes.
     fluxes_d = None
     for sample in samples:
-        fluxes = sample[key]
+        fluxes = sample[key_predicted]
         histogram, _ = np.histogram(fluxes, bins)
         histograms_i = np.column_stack((histograms_i, histogram))
 
@@ -320,6 +345,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     axes.stairs(median_i, bins, fill = True, color = '#bcefb7',
         label = 'Isotropic')
 
+    # If `case` is not `isotropic`, plot the visible fluxes for `case`.
     if anisotropic:
         axes.stairs(median_v, bins, fill = True, color = '#a9a9a9',
             label = f'Visible ({CASES_EXPANDED[case[0]]})')
@@ -345,15 +371,26 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     return figure
 
 
-def plot(
-    samples: list[EventSample], model: str, case: str, realisations: int
-) -> None:
+def plot(samples: list[EventSample], model: str, case: str) -> None:
+    '''Plots a histogram of the median of `samples` for a given `model`
+    of relativistic jet and `case` of opening angle, along with
+    individual histograms of several of the samples, and saves the
+    results to the `./figures` folder.
+
+    Args:
+        samples (list[EventSample]): A list of samples to plot.
+        model (str): Which model of relativistic jet to plot.
+        case (str): Which case of opening angle to plot; either
+            isotropic, uniform or fixed.
+    '''
+
     # Create a folder to store the plots in if it doesn't exist.
     folder = os.path.join('.', 'figures')
     if not os.path.exists(folder):
         os.makedirs(folder)
 
     # Plot a number of realisations separately, up to `MAXIMUM_PLOTS`.
+    realisations = len(samples)
     if realisations > 1:
         plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
         for p in range(plots):
@@ -434,7 +471,7 @@ def main() -> None:
 
         for c in cases:
             print(f'-> Plotting {CASES_EXPANDED[c]}...')
-            plot(samples, m, c, realisations)
+            plot(samples, m, c)
 
         print()
         print(f'<-- Finished processing model {name} ({m}).')
