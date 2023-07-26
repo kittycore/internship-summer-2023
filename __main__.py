@@ -190,8 +190,8 @@ def process(
     # Repeatedly sample the set of events and collect the results.
     digits = int(np.log10(realisations)) + 1
     status = f'Realising {{0:{digits}d}} of {{1:{digits}d}}...'
-    for realisation in range(1, realisations + 1):
-        print(status.format(realisation, realisation))
+    for realisation in range(0, realisations):
+        print(status.format(realisation + 1, realisations))
         sample = realise(events, model)
         collector.append(sample)
 
