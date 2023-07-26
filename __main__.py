@@ -252,7 +252,7 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     axes.legend()
 
     # Configure the plot.
-    figure.suptitle('Population Sample', fontsize = 14)
+    figure.suptitle('Population Sample (Single)')
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
     return figure
@@ -365,7 +365,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     axes.legend()
 
     # Configure the plot.
-    figure.suptitle('Population Sample', fontsize = 14)
+    figure.suptitle('Population Sample (Median)')
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
     return figure
