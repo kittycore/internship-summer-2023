@@ -184,7 +184,7 @@ def process(
 
     # Repeatedly sample the set of events and collect the results.
     for realisation in range(0, realisations):
-        print(f'Realising {realisation + 1:4d} of {realisations:4d}...')
+        print(f'Realising {realisation + 1:5d} of {realisations:5d}...')
         sample = realise(events, model)
         collector.append(sample)
 
