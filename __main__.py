@@ -233,11 +233,10 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     return figure
 
 
-def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
-    '''Plots a histogram of the predicted fluxes within `samples` for a
-    given `model` of relativistic jet and `case` of opening angle. If
-    more than one sample is given, then the median of the samples is
-    plotted instead.
+def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure:
+    '''Plots a histogram of the median of predicted fluxes within
+    `samples` for a given `model` of relativistic jet and `case` of
+    opening angle.
 
     Args:
         samples (list[EventSample]): A list of samples.
@@ -248,9 +247,6 @@ def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     Returns:
         plt.Figure: The plotted figure.
     '''
-
-    if len(samples) == 1:
-        return plot_single(samples[0], model, case)
 
     figure = cast(plt.Figure, plt.figure())
 
@@ -349,6 +345,30 @@ def plot(samples: list[EventSample], model: str, case: str) -> plt.Figure:
     return figure
 
 
+def plot(
+    samples: list[EventSample], model: str, case: str, realisations: int
+) -> None:
+    # Create a folder to store the plots in if it doesn't exist.
+    folder = os.path.join('.', 'figures')
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    # Plot a number of realisations separately, up to `MAXIMUM_PLOTS`.
+    if realisations > 1:
+        plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
+        for p in range(plots):
+            figure = plot_single(samples[p], model, case)
+            filename = os.path.join(folder,
+                                   f'{model}_{case}_realisation_{p + 1}.png')
+            plt.savefig(filename)
+            plt.close(figure)
+
+    plot_median(samples, model, case)
+    suffix = '_median' if realisations > 1 else ''
+    filename = os.path.join(folder, f'{model}_{case}{suffix}.png')
+    plt.savefig(filename)
+
+
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''Adds command-line arguments relevant to this module to an
     argument parser.
@@ -359,9 +379,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''
 
     parser.add_argument('-c',
-        choices = [*CASES, 'isotropic', 'uniform', 'fixed'],
-        default = 'i', help = 'Which case to plot.')
-    parser.add_argument('-m', choices = MODELS, default = 'QQ',
+        choices = [*CASES, 'isotropic', 'uniform', 'fixed', 'all'],
+        default = 'all', help = 'Which case to plot.')
+    parser.add_argument('-m', choices = [*MODELS, 'all'], default = 'all',
         help = 'Which model to plot.')
 
     parser.add_argument('-p', action = 'store_true',
@@ -401,27 +421,26 @@ def main() -> None:
     realisations = args['r']
 
     events = preprocess.preprocess(arguments)
-    samples = process(events, model, realisations)
 
-    # Create a folder to store the plots in if it doesn't exist.
-    folder = os.path.join('.', 'figures')
-    if not os.path.exists(folder):
-        os.makedirs(folder)
+    if model == 'all':
+        for m in MODELS:
+            name = MODELS_EXPANDED[m]
+            print(f'--> Processing model {name} ({m})...')
 
-    # Plot a number of realisations separately, up to `MAXIMUM_PLOTS`.
-    if realisations > 1:
-        plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
-        for p in range(plots):
-            figure = plot([samples[p]], model, case)
-            filename = os.path.join(folder,
-                                   f'{model}_{case}_realisation_{p + 1}.png')
-            plt.savefig(filename)
-            plt.close(figure)
+            samples = process(events, m, realisations)
+            print()
 
-    plot(samples, model, case)
-    suffix = '_median' if realisations > 1 else ''
-    filename = os.path.join(folder, f'{model}_{case}{suffix}.png')
-    plt.savefig(filename)
+            for c in CASES:
+                print(f'-> Plotting {CASES_EXPANDED[c]}...')
+                plot(samples, m, c, realisations)
+
+            print()
+            print(f'<-- Finished processing model {name} ({m}).')
+            print()
+    else:
+        samples = process(events, model, realisations)
+        plot(samples, model, case, realisations)
+
     plt.show()
 
 
