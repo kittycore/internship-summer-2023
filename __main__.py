@@ -78,6 +78,20 @@ class EventSample(np.ndarray):
 
 
 def progress_bar(iterator, prefix = '', length: int = 60):
+    '''Wraps an iterable and displays a progress bar that updates as
+    the iterable's items are yielded.
+
+    Args:
+        iterator (iterable): An iterable to wrap.
+        prefix (str, optional): Displayed before the progress bar.
+            Defaults to ''.
+        length (int, optional): Length of the progress bar. Defaults
+            to 60.
+
+    Yields:
+        Items from the iterable.
+    '''
+
     size = len(iterator)
 
     def update(index: int):
