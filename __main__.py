@@ -94,7 +94,8 @@ def progress_bar(iterator, prefix = '', length: int = 60):
 
 def is_visible(
     inclinations: np.ndarray,
-    opening_angles: np.ndarray | None = None
+    upper_limits: np.ndarray,
+    opening_angles: np.ndarray | None = None,
 ) -> np.ndarray:
     '''Determines the visibility of a set of events using the
     inclination and the opening angle of the relativistic jet
@@ -103,6 +104,8 @@ def is_visible(
     Args:
         inclinations (np.ndarray): An array containing inclinations for
             the relativistic jets associated with a set of events.
+        upper_limits (np.ndarray): An array containing the upper limits
+            of Fermi-GBM for each event to check for the Earth.
         opening_angles (np.ndarray | None, optional): An array
             containing opening angles for the relativistic jets
             associated with a set of events. If None, then the angle
@@ -113,6 +116,10 @@ def is_visible(
         np.ndarray: An array of booleans indicating which events are
             visible or not from Earth.
     '''
+
+    # HealPy assigns a negative number to coordinates on the sky map
+    # that are blocked by the Earth.
+    unblocked = upper_limits > 0
 
     # Wrap inclination angles outside the domain [-π/2, π/2] to
     # simplify the rest of the check.
@@ -126,7 +133,7 @@ def is_visible(
 
     within_maximum = inclinations <  angle
     within_minimum = inclinations > -angle
-    return within_maximum & within_minimum
+    return within_maximum & within_minimum & unblocked
 
 
 def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
@@ -138,7 +145,7 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
         fluxes (np.ndarray): An array containing the predicted fluxes
             of the relativistic jets associated with a set of events.
         upper_limits (np.ndarray): An array containing the upper limits
-            of Fermi-GBM for each event.
+            of Fermi-GBM for each event to check for the Earth.
 
     Returns:
         np.ndarray: An array of booleans indicating which events are
@@ -175,14 +182,15 @@ def realise(events: dict[str, Event], model: str) -> EventSample:
     # of these fluxes are potentially detectable.
     choices = random.choice(collector, size = sample_size, shuffle = False)
 
+    upper_limits = choices['upper_limit']
+
     fluxes = choices[f'flux_{model}']
     sample[f'predicted_{model}'] = fluxes
-    sample[f'detectable_{model}'] = is_detectable(fluxes,
-                                                  choices['upper_limit'])
+    sample[f'detectable_{model}'] = is_detectable(fluxes, upper_limits)
 
     # Determine the visibility of the chosen fluxes.
     inclinations = choices['inclination']
-    sample['visible_f'] = is_visible(inclinations)
+    sample['visible_f'] = is_visible(inclinations, upper_limits)
     sample['visible_u'] = is_visible(inclinations, choices['opening_angle'])
 
     return sample
