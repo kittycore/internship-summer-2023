@@ -460,10 +460,11 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     median = np.median(detectable)
     percentile = np.percentile(detectable, CONFIDENCE)
 
-    print(f'-> {detectable.sum()} detections from {detectable.size} events.')
-    print(f'-> Mean detections: {mean}')
-    print(f'-> Median detections: {median}')
-    print(f'-> {CONFIDENCE}% percentile: {percentile}')
+    print(f'{detectable.sum()} detections from {detectable.size} events!',
+        end = '\n\t')
+    print(f'Mean: {mean:.8f}', end = ' | ')
+    print(f'Median: {median}', end = ' | ')
+    print(f'{CONFIDENCE}% confidence: {percentile:.8f}')
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -524,16 +525,17 @@ def main() -> None:
 
     for m in models:
         name = MODELS_EXPANDED[m]
-        print(f'--> Processing model {name} ({m})...')
+        print(f'Processing model {name} ({m})...')
 
         for c in cases:
-            print(f'-> Plotting case {CASES_EXPANDED[c]}...')
+            print(f'Plotting case {CASES_EXPANDED[c]}...')
 
             samples = process(events, m, c, realisations)
             plot(samples, m, c)
             compute(samples, m, c)
 
-        print(f'<-- Finished processing model {name} ({m}).')
+        print(f'Finished processing model {name} ({m}).')
+        print()
 
     plt.show()
 
