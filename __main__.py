@@ -77,6 +77,21 @@ class EventSample(np.ndarray):
         return super().__new__(cls, shape, dtype = EventSample.DTYPE)
 
 
+def progress_bar(iterator, prefix = '', length: int = 60):
+    size = len(iterator)
+
+    def update(index: int):
+        fill = int(length * index / size)
+        print(f'{prefix}|{u"█" * fill}{"." * (length - fill)}| {index}/{size}',
+            end = '\r', flush = True)
+
+    update(0)
+    for index, item in enumerate(iterator):
+        yield item
+        update(index + 1)
+    print(flush = True)
+
+
 def is_visible(
     inclinations: np.ndarray,
     opening_angles: np.ndarray | None = None
@@ -191,10 +206,7 @@ def process(
     collector = []
 
     # Repeatedly sample the set of events and collect the results.
-    digits = int(np.log10(realisations)) + 1
-    status = f'Realising {{0:{digits}d}} of {{1:{digits}d}}...'
-    for realisation in range(0, realisations):
-        print(status.format(realisation + 1, realisations))
+    for _ in progress_bar(range(0, realisations), prefix = 'Realising: '):
         sample = realise(events, model)
         collector.append(sample)
 
