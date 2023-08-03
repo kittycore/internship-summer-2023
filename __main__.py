@@ -467,15 +467,12 @@ def main() -> None:
         print(f'--> Processing model {name} ({m})...')
 
         samples = process(events, m, realisations)
-        print()
 
         for c in cases:
-            print(f'-> Plotting {CASES_EXPANDED[c]}...')
+            print(f'-> Plotting case {CASES_EXPANDED[c]}...')
             plot(samples, m, c)
 
-        print()
         print(f'<-- Finished processing model {name} ({m}).')
-        print()
 
     plt.show()
 
