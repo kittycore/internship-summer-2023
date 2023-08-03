@@ -53,6 +53,9 @@ UPPER_PERCENTILE = 84
 # The lower percentile used for plotted confidence bands.
 LOWER_PERCENTILE = 16
 
+# What percentile to consider 'confident' for the number of detections.
+CONFIDENCE = 95
+
 
 class EventSample(np.ndarray):
     DTYPE = [
@@ -406,6 +409,26 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
     plt.savefig(filename)
 
 
+def compute(samples: list[EventSample], model: str, case: str) -> None:
+    # Collect the samples into a single array.
+    collector = cast(EventSample, np.concatenate(samples, axis = -1))
+
+    detectable = collector[f'detectable_{model}']
+    if case[0] != 'i':
+        visible = collector[f'visible_{case[0]}']
+        detectable &= visible
+    detectable = detectable.astype(int)
+
+    mean = np.mean(detectable)
+    median = np.median(detectable)
+    percentile = np.percentile(detectable, CONFIDENCE)
+
+    print(f'-> {detectable.sum()} detections from {detectable.size} events.')
+    print(f'-> Mean detections: {mean}')
+    print(f'-> Median detections: {median}')
+    print(f'-> {CONFIDENCE}% percentile: {percentile}')
+
+
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''Adds command-line arguments relevant to this module to an
     argument parser.
@@ -471,6 +494,7 @@ def main() -> None:
         for c in cases:
             print(f'-> Plotting case {CASES_EXPANDED[c]}...')
             plot(samples, m, c)
+            compute(samples, m, c)
 
         print(f'<-- Finished processing model {name} ({m}).')
 
