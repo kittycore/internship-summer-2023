@@ -63,7 +63,8 @@ class EventSample(np.ndarray):
         ('predicted_NU', np.float64),
         ('predicted_BZ', np.float64),
         ('predicted_GW', np.float64),
-        ('visible', np.bool_),
+        ('visible_u', np.bool_),
+        ('visible_f', np.bool_),
         ('detectable_QQ', np.bool_),
         ('detectable_NU', np.bool_),
         ('detectable_BZ', np.bool_),
@@ -181,14 +182,12 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
     return fluxes >= upper_limits
 
 
-def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
-    '''Samples a set of events for a given `model` and `case`.
+def realise(events: dict[str, Event], model: str) -> EventSample:
+    '''Samples a set of events for a given `model`.
 
     Args:
         events (dict[str, Event]): A set of events to sample.
         model (str): Which model of relativistic jet to sample.
-        case (str): Which case of opening angle to sample; either
-            isotropic, uniform or fixed.
 
     Returns:
         EventSample: A realisation of the set of events.
@@ -210,12 +209,9 @@ def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
     # Determine the visibility of the chosen fluxes.
     inclinations = choices['inclination']
     upper_limits = choices['upper_limit']
-    # If it's the 'fixed' case...
-    if   case[0] == 'f':
-        sample['visible'] = is_visible(inclinations, upper_limits)
-    # If it's the 'uniform' case...
-    elif case[0] == 'u':
-        sample['visible'] = is_visible(inclinations, choices['opening_angle'])
+    sample['visible_f'] = is_visible(inclinations, upper_limits)
+    sample['visible_u'] = is_visible(
+        inclinations, upper_limits, choices['opening_angle'])
 
     sample[f'detectable_{model}'] = is_detectable(fluxes, upper_limits)
 
@@ -223,16 +219,14 @@ def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
 
 
 def process(
-    events: dict[str, Event], model: str, case: str, realisations: int
+    events: dict[str, Event], model: str, realisations: int
 ) -> list[EventSample]:
-    '''Processes a set of events for a given `model` and `case`,
-    returning a set of samples of number `realisations`.
+    '''Processes a set of events for a given `model`, returning a set
+    of samples of number `realisations`.
 
     Args:
         events (dict[str, Event]): A set of events to sample.
         model (str): Which model of relativistic jet to sample.
-        case (str): Which case of opening angle to sample; either
-            isotropic, uniform or fixed.
         realisations (int): The number of samples to produce.
 
     Returns:
@@ -243,7 +237,7 @@ def process(
 
     # Repeatedly sample the set of events and collect the results.
     for _ in progress_bar(range(0, realisations), prefix = 'Realising: '):
-        sample = realise(events, model, case)
+        sample = realise(events, model)
         collector.append(sample)
 
     return collector
@@ -267,14 +261,15 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
 
     anisotropic = case[0] != 'i'
     key_predicted = f'predicted_{model}'
+    key_visible = f'visible_{case[0]}'
 
     # Pick out the predicted fluxes, visible fluxes (if applicable),
     # and detectable fluxes.
     fluxes = sample[key_predicted]
-    fluxes_visible  = fluxes[sample['visible']] if anisotropic else None
+    fluxes_visible  = fluxes[sample[key_visible]] if anisotropic else None
     fluxes_detected = None
     if anisotropic:
-        detectable = sample[f'detectable_{model}'] & sample['visible']
+        detectable = sample[f'detectable_{model}'] & sample[key_visible]
         fluxes_detected = fluxes[detectable]
     else:
         fluxes_detected = fluxes[sample[f'detectable_{model}']]
@@ -329,6 +324,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     anisotropic = case[0] != 'i'
     key_predicted = f'predicted_{model}'
+    key_visible = f'visible_{case[0]}'
 
     # Find the maximum and minimum among the fluxes across every
     # sample to determine a uniform set of histogram bins.
@@ -362,7 +358,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         histograms_i = np.column_stack((histograms_i, histogram))
 
         if anisotropic:
-            visible = sample['visible']
+            visible = sample[key_visible]
 
             fluxes_v = fluxes[visible]
             histogram, _ = np.histogram(fluxes_v, bins)
@@ -474,7 +470,7 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     # Determine which of the events are detectable in this `case`.
     detectable = collector[f'detectable_{model}']
     if case[0] != 'i':
-        visible = collector['visible']
+        visible = collector[f'visible_{case[0]}']
         detectable &= visible
     detectable = detectable.astype(int)
 
@@ -550,13 +546,13 @@ def main() -> None:
         name = MODELS_EXPANDED[m]
         print(f'Processing model {name} ({m})...')
 
+        # Seed the random number generator.
+        global random
+        random = np.random.default_rng(args['s'])
+
+        samples = process(events, m, realisations)
+
         for c in cases:
-            # Seed the random number generator.
-            global random
-            random = np.random.default_rng(args['s'])
-
-            samples = process(events, m, c, realisations)
-
             print(f'Plotting case {CASES_EXPANDED[c]}...')
             plot(samples, m, c)
 
