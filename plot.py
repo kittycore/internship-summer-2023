@@ -15,7 +15,7 @@ DEFAULT_BIN_COUNT = 20
 MAXIMUM_PLOTS = 5
 
 
-def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
+def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
     '''Plots a histogram of a single `sample` for a given `model` of
     relativistic jet and `case` of opening angle.
 
@@ -205,14 +205,14 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
     if realisations > 1:
         plots = realisations if realisations < MAXIMUM_PLOTS else MAXIMUM_PLOTS
         for p in range(plots):
-            figure = plot_single(samples[p], model, case)
+            figure = plot_realisation(samples[p], model, case)
             filename = os.path.join(folder,
                                    f'{model}_{case}_realisation_{p + 1}.png')
             plt.savefig(filename)
             plt.close(figure)
     # If there's only one realisation, don't plot a median histogram.
     else:
-        plot_single(samples[0], model, case)
+        plot_realisation(samples[0], model, case)
         filename = os.path.join(folder, f'{model}_{case}_realisation.png')
         plt.savefig(filename)
         return
