@@ -81,8 +81,7 @@ def main() -> None:
         print(f'Processing model {name} ({m})...')
 
         # Seed the random number generator.
-        global random
-        random = np.random.default_rng(args['s'])
+        sample.random = np.random.default_rng(args['s'])
 
         samples = sample.process(events, m, realisations)
 
