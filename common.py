@@ -45,6 +45,7 @@ def progress_bar(iterator, prefix = '', length: int = 60):
         Items from the iterable.
     '''
 
+    prefix = '{:<10}'.format(prefix)
     length = length - len(prefix)
     size = len(iterator)
 
