@@ -579,15 +579,14 @@ def main(arguments: argparse.Namespace) -> None:
     args = vars(arguments) # Shorthand for easier access!
 
     # Check if a cache already exists, and if it does, print a notice and exit.
-    directory = os.path.join(args['root_directory'], CACHE_DIRECTORY)
-    if not args['force'] and is_cached(directory):
+    if not args['force'] and is_cached(CACHE_DIRECTORY):
         exit('A cache file already exists! Use `-f` or `--force` to ' \
              'regenerate it.')
 
     events = preprocess(arguments)
 
     # Serialise the events to a cache file.
-    serialise(directory, events)
+    serialise(CACHE_DIRECTORY, events)
 
 
 if __name__ == '__main__':
