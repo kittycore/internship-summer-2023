@@ -511,6 +511,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-s', type = int, default = DEFAULT_SEED,
         help = 'The seed used for the random number generator.')
 
+    parser.add_argument('--silent', action = 'store_true',
+        help = 'Do not show the plots when sampling is complete.')
+
     group = parser.add_argument_group('preprocessor',
         description = 'Arguments relevant to the preprocessor.')
     preprocess.add_arguments(parser, group)
@@ -562,7 +565,8 @@ def main() -> None:
         print(f'Finished processing model {name} ({m}).')
         print()
 
-    plt.show()
+    if not args['silent']:
+        plt.show()
 
 
 main()
