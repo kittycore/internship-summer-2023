@@ -108,23 +108,12 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
-    # Find the maximum and minimum among the fluxes across every
-    # sample to determine a uniform set of histogram bins.
-    net_maximum = np.max(samples[0][key_predicted])
-    net_minimum = np.min(samples[0][key_predicted])
-    for sample in samples:
-        fluxes = sample[key_predicted]
+    # Find the maximum and minimum among the fluxes of every sample.
+    collector = cast(EventSample, np.concatenate(samples, axis = -1))
+    maximum = np.max(collector[key_predicted])
+    minimum = np.min(collector[key_predicted])
 
-        maximum = np.max(fluxes)
-        minimum = np.min(fluxes)
-
-        if maximum > net_maximum:
-            net_maximum = maximum
-        if minimum < net_minimum:
-            net_minimum = minimum
-
-    bins = np.logspace(
-        np.log10(net_minimum), np.log10(net_maximum), DEFAULT_BIN_COUNT)
+    bins = np.logspace(np.log10(minimum), np.log10(maximum), DEFAULT_BIN_COUNT)
 
     histograms_i = np.empty(shape = (bins.size - 1, 0))
     histograms_d = np.copy(histograms_i)
