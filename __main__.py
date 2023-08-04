@@ -510,10 +510,6 @@ def main() -> None:
         preprocess.main(arguments)
         return
 
-    # Seed the random number generator.
-    global random
-    random = np.random.default_rng(args['s'])
-
     model = args['m']
     case = args['c']
     realisations = args['r']
@@ -528,10 +524,15 @@ def main() -> None:
         print(f'Processing model {name} ({m})...')
 
         for c in cases:
-            print(f'Plotting case {CASES_EXPANDED[c]}...')
+            # Seed the random number generator.
+            global random
+            random = np.random.default_rng(args['s'])
 
             samples = process(events, m, c, realisations)
+
+            print(f'Plotting case {CASES_EXPANDED[c]}...')
             plot(samples, m, c)
+
             compute(samples, m, c)
 
         print(f'Finished processing model {name} ({m}).')
