@@ -15,6 +15,21 @@ DEFAULT_BIN_COUNT = 20
 MAXIMUM_PLOTS = 5
 
 
+def configure_subplot(axes: plt.Axes, model: str) -> None:
+    '''Configures the axes of a subplot for a given `model`.
+
+    Args:
+        axes (plt.Axes): The axes to configure.
+        model (str): The model being plotted.
+    '''
+
+    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
+    axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
+    axes.set_ylabel('Number')
+    axes.set_xscale('log') # type: ignore
+    axes.legend()
+
+
 def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
     '''Plots a histogram of a single `sample` for a given `model` of
     relativistic jet and `case` of opening angle.
@@ -63,12 +78,7 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
 
     axes.hist(fluxes_detected, bins, color = '#eb3a2e', label = 'Detectable')
 
-    # Configure the subplot.
-    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
-    axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
-    axes.set_ylabel('Number')
-    axes.set_xscale('log') # type: ignore
-    axes.legend()
+    configure_subplot(axes, model)
 
     # Configure the plot.
     figure.suptitle('Population Sample (Single)')
@@ -168,12 +178,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
         label = 'Detectable')
 
-    # Configure the subplot.
-    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
-    axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
-    axes.set_ylabel('Number')
-    axes.set_xscale('log') # type: ignore
-    axes.legend()
+    configure_subplot(axes, model)
 
     # Configure the plot.
     figure.suptitle('Population Sample (Median)')
