@@ -464,24 +464,28 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
 
 
 def compute(samples: list[EventSample], model: str, case: str) -> None:
-    # Collect the samples into a single array.
-    collector = cast(EventSample, np.concatenate(samples, axis = -1))
+    realisations = len(samples)
+    detections = np.zeros(realisations, dtype = int)
 
-    # Determine which of the events are detectable in this `case`.
-    detectable = collector[f'detectable_{model}']
-    if case[0] != 'i':
-        visible = collector[f'visible_{case[0]}']
-        detectable &= visible
-    detectable = detectable.astype(int)
+    for index, sample in enumerate(samples):
+        # Determine which of the events are detectable in this `case`.
+        detectable = sample[f'detectable_{model}']
+        if case[0] != 'i':
+            visible = sample[f'visible_{case[0]}']
+            detectable &= visible
+        detectable = detectable.astype(int)
 
-    mean = np.mean(detectable)
-    median = np.median(detectable)
-    confidence = np.percentile(detectable, CONFIDENCE)
+        detections[index] = np.count_nonzero(detectable)
 
-    print(f'{detectable.sum()} detections from {detectable.size} events!',
+    mean = np.mean(detections)
+    median = np.median(detections)
+    confidence = np.percentile(detections, 100 - CONFIDENCE)
+
+    events = realisations * samples[0].size
+    print(f'{detections.sum()} detections from {events} events!',
         end = '\n\t')
-    print(f'Mean: {mean:.8f}', end = ' | ')
-    print(f'Median: {median}', end = ' | ')
+    print(f'Mean: {mean:.3f}', end = ' | ')
+    print(f'Median: {median:.3f}', end = ' | ')
     print(f'{CONFIDENCE}% confidence: {confidence:.3f}')
 
 
