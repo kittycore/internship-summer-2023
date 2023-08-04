@@ -121,7 +121,7 @@ def find_models(directory: str) -> dict[str, str]:
     models = {}
 
     paths = sorted(wildcard(directory, 'txt'))
-    for path in paths:
+    for path in progress_bar(paths, prefix = 'Finding'):
         identifier = extract_identifier(path)
         model = extract_model(path)
         key = f'{identifier}_{model}'
@@ -149,7 +149,7 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
 
     keeps = []
 
-    for key in sorted(models.keys()):
+    for key in progress_bar(sorted(models.keys()), prefix = 'Trimming'):
         identifier = extract_identifier(key)
         model = extract_model(key)
 
@@ -192,7 +192,7 @@ def load_models(models: dict[str, str]) -> dict[str, Event]:
 
     events = {}
 
-    for key, path in models.items():
+    for key, path in progress_bar(models.items(), prefix = 'Loading'):
         data = np.loadtxt(path, dtype = MODEL_DTYPE)
 
         event = Event(data.size)
@@ -209,10 +209,6 @@ def load_models(models: dict[str, str]) -> dict[str, Event]:
         event['upper_limit'] = np.nan
 
         events[key] = event
-
-        identifier = extract_identifier(key)
-        model = extract_model(key)
-        print(f'Read {identifier} ({model}) from {os.path.basename(path)}.')
 
     return events
 
@@ -234,7 +230,7 @@ def find_places(directory: str) -> dict[str, str]:
     places = {}
 
     paths = sorted(wildcard(directory, 'h5'))
-    for path in paths:
+    for path in progress_bar(paths, prefix = 'Finding'):
         identifier = extract_identifier(path)
         places[identifier] = path
 
@@ -265,7 +261,7 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
 
     loads = {}
 
-    for key, event in events.items():
+    for key, event in progress_bar(events.items(), prefix = 'Loading'):
         identifier = extract_identifier(key)
         path = None
 
@@ -309,9 +305,6 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
             loads[key]['right_ascension'] = cast(np.ndarray, data['ra']) # type: ignore
             loads[key]['declination'] = cast(np.ndarray, data['dec']) # type: ignore
 
-        print(f'Read coordinates of {identifier} ({model}) from ' \
-              f'{os.path.basename(path)}.')
-
     return loads
 
 
@@ -334,7 +327,7 @@ def find_limits(directory: str) -> dict[str, str]:
     limits = {}
 
     paths = sorted(wildcard(directory, 'npy'))
-    for path in paths:
+    for path in progress_bar(paths, prefix = 'Finding'):
         identifier = extract_identifier(path)
         limits[identifier] = path
 
@@ -366,7 +359,7 @@ def load_limits(limits: dict[str, str], events: dict[str, Event]) \
 
     loads = {}
 
-    for key, event in events.items():
+    for key, event in progress_bar(events.items(), prefix = 'Loading'):
         identifier = extract_identifier(key)
 
         # If there are any NaNs in the event's coordinates, then a location for
@@ -402,8 +395,6 @@ def load_limits(limits: dict[str, str], events: dict[str, Event]) \
         healpix = np.load(path)
         loads[key] = np.copy(event, subok = True)
         loads[key]['upper_limit'] = healpix[pix]
-
-        print(f'Read upper limits of {identifier} from {path}.')
 
     return loads
 
@@ -484,60 +475,31 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
         print('A cache file already exists! Loading from cache...')
         return deserialise(root_directory)
 
-    print('--> Preprocessing...')
-    print()
-
     # Find, trim and finally load the simulation models.
+    print('Preprocessing models...')
     directory = os.path.join(root_directory, args['models_directory'])
-
-    print(f'-> Searching for models in {directory}...')
     models = find_models(directory)
-    print(f'<- Found {len(models)} models.')
-
-    print()
-
-    print('-> Trimming models...')
     models = trim_models(models)
-    print(f'<- Trimmed down to {len(models)} models.')
-
-    print()
-
-    print('-> Loading models...')
     events = load_models(models)
-    print(f'<- Successfully loaded {len(models)} models.')
 
     print()
 
     # Find and load coordinates for each event from the GWTC datasets.
+    print('Preprocessing places...')
     directory = os.path.join(root_directory, args['places_directory'])
-
-    print(f'-> Searching for GWTC datasets in {directory}...')
     places = find_places(directory)
-    print(f'<- Found {len(places)} datasets.')
-
-    print()
-
-    print(f'-> Loading coordinates from GWTC datasets...')
     events = load_places(places, events)
-    print(f'<- Successfully loaded {len(events)} sets of coordinates.')
 
     print()
 
     # Find and load upper limits for each event.
+    print('Preprocessing limits...')
     directory = os.path.join(root_directory, args['limits_directory'])
-
-    print(f'-> Searching for upper limits in {directory}...')
     limits = find_limits(directory)
-    print(f'<- Found {len(limits)} upper limits.')
-
-    print()
-
-    print(f'-> Loading upper limits...')
     events = load_limits(limits, events)
-    print(f'<- Successfully loaded {len(events)} upper limits.')
 
     print()
-    print('<-- Preprocessing complete!')
+    print('Preprocessing complete!')
 
     return events
 
