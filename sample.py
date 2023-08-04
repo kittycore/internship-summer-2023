@@ -172,10 +172,11 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     realisations = len(samples)
     detections = np.zeros(realisations, dtype = int)
 
+    anisotropic = is_anisotropic(case)
     for index, sample in enumerate(samples):
         # Determine which of the events are detectable in this `case`.
         detectable = sample[f'detectable_{model}']
-        if case[0] != 'i':
+        if anisotropic:
             visible = sample[f'visible_{case[0]}']
             detectable &= visible
         detectable = detectable.astype(int)

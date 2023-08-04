@@ -14,6 +14,19 @@ CASES_EXPANDED = {
 }
 
 
+def is_anisotropic(case: str) -> bool:
+    '''Returns True if `case` is an anisotropic case of opening angle.
+
+    Args:
+        case (str): The case of opening angle to test.
+
+    Returns:
+        bool: True if `case` is anisotropic.
+    '''
+
+    return case[0] != 'i'
+
+
 def progress_bar(iterator, prefix = '', length: int = 60):
     '''Wraps an iterable and displays a progress bar that updates as
     the iterable's items are yielded.

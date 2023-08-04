@@ -46,7 +46,7 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
 
     figure = cast(plt.Figure, plt.figure())
 
-    anisotropic = case[0] != 'i'
+    anisotropic = is_anisotropic(case)
     key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
@@ -104,7 +104,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     figure = cast(plt.Figure, plt.figure())
 
-    anisotropic = case[0] != 'i'
+    anisotropic = is_anisotropic(case)
     key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
