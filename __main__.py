@@ -48,11 +48,6 @@ DEFAULT_REALISATIONS = 1
 # The maximum number of realisations to plot separately.
 MAXIMUM_PLOTS = 5
 
-# The upper percentile used for plotted confidence bands.
-UPPER_PERCENTILE = 84
-# The lower percentile used for plotted confidence bands.
-LOWER_PERCENTILE = 16
-
 # What percentile to consider 'confident' for the number of detections.
 CONFIDENCE = 95
 
@@ -376,18 +371,12 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
     median_d = np.copy(median_i)
     median_v = np.copy(median_i)
 
-    upper_i = np.copy(median_i)
-    lower_i = np.copy(median_i)
-
     for b in range(bins.size - 1):
         median_i[b] = np.median(histograms_i[b])
         median_d[b] = np.median(histograms_d[b])
 
         if anisotropic:
             median_v[b] = np.median(histograms_v[b])
-
-        upper_i[b] = np.percentile(histograms_i[b], UPPER_PERCENTILE)
-        lower_i[b] = np.percentile(histograms_i[b], LOWER_PERCENTILE)
 
     # Plot the median histograms.
     axes = cast(plt.Axes, figure.subplots())
@@ -401,12 +390,6 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
         label = 'Detectable')
-
-    # Plot the confidence band.
-    axes.stairs(upper_i, bins, color = '#78ab73',
-        label = f'{UPPER_PERCENTILE}% Confidence')
-    axes.stairs(lower_i, bins, color = '#568951',
-        label = f'{LOWER_PERCENTILE}% Confidence')
 
     # Configure the subplot.
     axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
