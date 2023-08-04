@@ -3,11 +3,13 @@ import numpy as np
 
 import argparse, glob, os, re
 
+from common import *
+
 from typing import cast, Iterator
 
 
 # The name of the cache file.
-CACHE_FILE = 'cache.npz'
+CACHE_FILE = 'preprocessed.npz'
 
 # Models found within the GWTC datasets.
 MODELS = [
@@ -577,7 +579,7 @@ def main(arguments: argparse.Namespace) -> None:
     args = vars(arguments) # Shorthand for easier access!
 
     # Check if a cache already exists, and if it does, print a notice and exit.
-    directory = args['root_directory']
+    directory = os.path.join(args['root_directory'], CACHE_DIRECTORY)
     if not args['force'] and is_cached(directory):
         exit('A cache file already exists! Use `-f` or `--force` to ' \
              'regenerate it.')

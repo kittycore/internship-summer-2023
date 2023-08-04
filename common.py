@@ -1,3 +1,6 @@
+# Where caches are located.
+CACHE_DIRECTORY = 'cache'
+
 # More descriptive names for each of the models.
 MODELS_EXPANDED = {
     'QQ': 'Charged Black Hole',
