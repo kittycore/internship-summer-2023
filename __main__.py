@@ -4,7 +4,7 @@ import numpy as np
 import argparse, os
 
 import preprocess
-from preprocess import Event # To simplify type hints.
+from preprocess import Event
 
 from typing import cast
 
@@ -14,8 +14,8 @@ FIXED_ANGLE = np.deg2rad(20)
 # A right angle, in radians.
 RIGHT_ANGLE = np.pi / 2
 
-# Models for the relativistic jets sometimes produced during binary
-# black hole mergers.
+# Shorthand for the models of the relativistic jets sometimes produced
+# during binary black hole mergers.
 MODELS = ['QQ', 'NU', 'BZ', 'GW']
 # More descriptive names for each of the above models.
 MODELS_EXPANDED = {
@@ -25,7 +25,7 @@ MODELS_EXPANDED = {
     'GW': 'Gravitational Wave Energy Conversion',
 }
 
-# Cases of opening angles for the relativistic jets sometimes produced
+# Cases of opening angle for the relativistic jets sometimes produced
 # during binary black hole mergers.
 CASES = ['i', 'u', 'f']
 # More descriptive names for each of the above cases.
@@ -84,16 +84,23 @@ def progress_bar(iterator, prefix = '', length: int = 60):
         iterator (iterable): An iterable to wrap.
         prefix (str, optional): Displayed before the progress bar.
             Defaults to ''.
-        length (int, optional): Length of the progress bar. Defaults
-            to 60.
+        length (int, optional): Length of the progress bar, including
+            the prefix. Defaults to 60.
 
     Yields:
         Items from the iterable.
     '''
 
+    length = length - len(prefix)
     size = len(iterator)
 
     def update(index: int):
+        '''Updates the progress bar.
+
+        Args:
+            index (int): The index of the current iterator item.
+        '''
+
         fill = int(length * index / size)
         print(f'{prefix}|{u"█" * fill}{"." * (length - fill)}| {index}/{size}',
             end = '\r', flush = True)
@@ -112,13 +119,13 @@ def is_visible(
 ) -> np.ndarray:
     '''Determines the visibility of a set of events using the
     inclination and the opening angle of the relativistic jet
-    associated with each event.
+    associated with each event and whether Earth blocks it.
 
     Args:
         inclinations (np.ndarray): An array containing inclinations for
             the relativistic jets associated with a set of events.
         upper_limits (np.ndarray): An array containing the upper limits
-            of Fermi-GBM for each event to check for the Earth.
+            of Fermi-GBM to check for the presence of the Earth.
         opening_angles (np.ndarray | None, optional): An array
             containing opening angles for the relativistic jets
             associated with a set of events. If None, then the angle
@@ -158,16 +165,16 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
         fluxes (np.ndarray): An array containing the predicted fluxes
             of the relativistic jets associated with a set of events.
         upper_limits (np.ndarray): An array containing the upper limits
-            of Fermi-GBM for each event to check for the Earth.
+            of Fermi-GBM to check for the presence of the Earth.
 
     Returns:
         np.ndarray: An array of booleans indicating which events are
             detectable or not by Fermi-GBM.
     '''
 
-    # Fermi-GBM's view of some events will be blocked by the Earth.
-    # These are assigned a negative value by HealPy, so replace them
-    # with a large positive value to simplify the check.
+    # HealPy assigns a negative number to coordinates on the sky map
+    # that are blocked by the Earth. To simplify the comparison,
+    # replace the negative numbers with large, positive numbers.
     blocked = upper_limits < 0
     upper_limits = np.where(blocked, np.finfo(np.float64).max, upper_limits)
 
@@ -175,7 +182,7 @@ def is_detectable(fluxes: np.ndarray, upper_limits: np.ndarray) -> np.ndarray:
 
 
 def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
-    '''Samples a set of events for a given `model`.
+    '''Samples a set of events for a given `model` and `case`.
 
     Args:
         events (dict[str, Event]): A set of events to sample.
@@ -197,18 +204,20 @@ def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
     # of these fluxes are potentially detectable.
     choices = random.choice(collector, size = sample_size, shuffle = False)
 
-    upper_limits = choices['upper_limit']
-
     fluxes = choices[f'flux_{model}']
     sample[f'predicted_{model}'] = fluxes
-    sample[f'detectable_{model}'] = is_detectable(fluxes, upper_limits)
 
     # Determine the visibility of the chosen fluxes.
     inclinations = choices['inclination']
+    upper_limits = choices['upper_limit']
+    # If it's the 'fixed' case...
     if   case[0] == 'f':
         sample['visible'] = is_visible(inclinations, upper_limits)
+    # If it's the 'uniform' case...
     elif case[0] == 'u':
         sample['visible'] = is_visible(inclinations, choices['opening_angle'])
+
+    sample[f'detectable_{model}'] = is_detectable(fluxes, upper_limits)
 
     return sample
 
@@ -216,8 +225,8 @@ def realise(events: dict[str, Event], model: str, case: str) -> EventSample:
 def process(
     events: dict[str, Event], model: str, case: str, realisations: int
 ) -> list[EventSample]:
-    '''Processes a set of events for a given `model` of relativistic
-    jet, returning a set of samples of number `realisations`.
+    '''Processes a set of events for a given `model` and `case`,
+    returning a set of samples of number `realisations`.
 
     Args:
         events (dict[str, Event]): A set of events to sample.
@@ -262,12 +271,13 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     # Pick out the predicted fluxes, visible fluxes (if applicable),
     # and detectable fluxes.
     fluxes = sample[key_predicted]
-    visible = fluxes[sample['visible']] if anisotropic else None
-    detected = None
+    fluxes_visible  = fluxes[sample['visible']] if anisotropic else None
+    fluxes_detected = None
     if anisotropic:
-        detected = fluxes[sample[f'detectable_{model}'] & sample['visible']]
+        detectable = sample[f'detectable_{model}'] & sample['visible']
+        fluxes_detected = fluxes[detectable]
     else:
-        detected = fluxes[sample[f'detectable_{model}']]
+        fluxes_detected = fluxes[sample[f'detectable_{model}']]
 
     # Determine the histogram binning based upon the minimum and
     # maximum fluxes within log-space.
@@ -275,15 +285,16 @@ def plot_single(sample: EventSample, model: str, case: str) -> plt.Figure:
     minimum = np.min(fluxes)
     bins = np.logspace(np.log10(minimum), np.log10(maximum), DEFAULT_BIN_COUNT)
 
+    # Plot each set of fluxes.
     axes = cast(plt.Axes, figure.subplots())
     axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
 
     # If `case` is not `isotropic`, plot the visible fluxes for `case`.
     if anisotropic:
-        axes.hist(visible, bins, color = '#a9a9a9',
+        axes.hist(fluxes_visible, bins, color = '#a9a9a9',
             label = f'Visible ({CASES_EXPANDED[case[0]]})')
 
-    axes.hist(detected, bins, color = '#eb3a2e', label = 'Detectable')
+    axes.hist(fluxes_detected, bins, color = '#eb3a2e', label = 'Detectable')
 
     # Configure the subplot.
     axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
@@ -351,11 +362,12 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         histograms_i = np.column_stack((histograms_i, histogram))
 
         if anisotropic:
-            fluxes_v = fluxes[sample['visible']]
+            visible = sample['visible']
+
+            fluxes_v = fluxes[visible]
             histogram, _ = np.histogram(fluxes_v, bins)
             histograms_v = np.column_stack((histograms_v, histogram))
 
-            visible = sample['visible']
             fluxes_d = fluxes[sample[f'detectable_{model}'] & visible]
         else:
             fluxes_d = fluxes[sample[f'detectable_{model}']]
@@ -363,6 +375,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         histogram, _ = np.histogram(fluxes_d, bins)
         histograms_d = np.column_stack((histograms_d, histogram))
 
+    # Generate the median histogram and the confidence band.
     median_i = np.empty(shape = bins.size - 1)
     median_d = np.copy(median_i)
     median_v = np.copy(median_i)
@@ -394,8 +407,10 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         label = 'Detectable')
 
     # Plot the confidence band.
-    axes.stairs(upper_i, bins, color = '#78ab73')
-    axes.stairs(lower_i, bins, color = '#78ab73')
+    axes.stairs(upper_i, bins, color = '#78ab73',
+        label = f'{UPPER_PERCENTILE}% Confidence')
+    axes.stairs(lower_i, bins, color = '#568951',
+        label = f'{LOWER_PERCENTILE}% Confidence')
 
     # Configure the subplot.
     axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
@@ -439,6 +454,12 @@ def plot(samples: list[EventSample], model: str, case: str) -> None:
                                    f'{model}_{case}_realisation_{p + 1}.png')
             plt.savefig(filename)
             plt.close(figure)
+    # If there's only one realisation, don't plot a median histogram.
+    else:
+        plot_single(samples[0], model, case)
+        filename = os.path.join(folder, f'{model}_{case}_realisation.png')
+        plt.savefig(filename)
+        return
 
     plot_median(samples, model, case)
     suffix = '_median' if realisations > 1 else ''
@@ -450,6 +471,7 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     # Collect the samples into a single array.
     collector = cast(EventSample, np.concatenate(samples, axis = -1))
 
+    # Determine which of the events are detectable in this `case`.
     detectable = collector[f'detectable_{model}']
     if case[0] != 'i':
         visible = collector['visible']
@@ -458,13 +480,13 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
 
     mean = np.mean(detectable)
     median = np.median(detectable)
-    percentile = np.percentile(detectable, CONFIDENCE)
+    confidence = np.percentile(detectable, CONFIDENCE)
 
     print(f'{detectable.sum()} detections from {detectable.size} events!',
         end = '\n\t')
     print(f'Mean: {mean:.8f}', end = ' | ')
     print(f'Median: {median}', end = ' | ')
-    print(f'{CONFIDENCE}% confidence: {percentile:.8f}')
+    print(f'{CONFIDENCE}% confidence: {confidence:.3f}')
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -516,6 +538,8 @@ def main() -> None:
 
     events = preprocess.preprocess(arguments)
 
+    # If 'all' is passed for the model or the case, substitute the
+    # respective master list.
     models = MODELS if model == 'all' else [model]
     cases = CASES if case == 'all' else [case[0]]
 
