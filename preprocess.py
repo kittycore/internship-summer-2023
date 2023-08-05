@@ -466,14 +466,13 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     '''
 
     args = vars(arguments) # Shorthand for easier access!
-
     root_directory = args['root_directory']
 
     # Check if a cache already exists, and if it does, deserialise it and
     # return that instead.
-    if not args['force'] and is_cached(root_directory):
+    if not args['force'] and is_cached(CACHE_DIRECTORY):
         print('A cache file already exists! Loading from cache...')
-        return deserialise(root_directory)
+        return deserialise(CACHE_DIRECTORY)
 
     # Find, trim and finally load the simulation models.
     print('Preprocessing models...')

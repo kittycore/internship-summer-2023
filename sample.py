@@ -1,6 +1,9 @@
 import numpy as np
 
+import argparse, os
+
 from common import *
+import preprocess
 from preprocess import Event
 
 
@@ -16,6 +19,11 @@ random: np.random.Generator = np.random.default_rng(DEFAULT_SEED)
 
 # What percentile to consider 'confident' for the number of detections.
 CONFIDENCE = 95
+
+CACHE_FILE = 'sample_{model}_{realisations}.npz'
+
+# Default number of realisations.
+DEFAULT_REALISATIONS = 1
 
 
 class EventSample(np.ndarray):
@@ -193,3 +201,129 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     print(f'Mean: {mean:.3f}', end = ' | ')
     print(f'Median: {median:.3f}', end = ' | ')
     print(f'{CONFIDENCE}% confidence: {confidence:.3f}')
+
+
+def is_cached(directory: str, model: str, realisations: int) -> bool:
+    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+    return os.path.isfile(path)
+
+
+def deserialise(directory: str, model: str, realisations: int) -> list[EventSample]:
+    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+
+    samples = None
+    with np.load(path) as dataset:
+        samples = list(dataset.values())
+
+    return samples
+
+
+def serialise(directory: str, samples: list[EventSample], model: str, realisations: int) -> None:
+    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+    np.savez(path, *samples)
+
+
+def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
+    args = vars(arguments) # Shorthand for easier access!
+
+    model = args['m']
+    realisations = args['r']
+
+    events = preprocess.preprocess(arguments)
+    models = MODELS if model == 'all' else list(model)
+
+    collector = {}
+
+    for model in models:
+        name = MODELS_EXPANDED[model]
+        print(f'Sampling model {name} ({model})...')
+
+        # Check if a cache for this model already exists, and if it
+        # does, deserialise it.
+        if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
+            print('A cache file already exists! Loading from cache...')
+            collector[model] = deserialise(CACHE_DIRECTORY, model, realisations)
+        else:
+            # Seed the random number generator.
+            global random
+            random = np.random.default_rng(args['s'])
+
+            samples = process(events, model, realisations)
+            serialise(CACHE_DIRECTORY, samples, model, realisations)
+            collector[model] = samples
+
+        print(f'Finished sampling model {name} ({model}).')
+        print()
+
+    return collector
+
+
+def add_arguments(parser: argparse.ArgumentParser,
+    group: argparse._ArgumentGroup | None = None) -> None:
+    # If a group is specified, re-route `add_argument` calls to it.
+    target = parser
+    if group:
+        target = group
+
+    target.add_argument('-m', choices = [*MODELS, 'all'], default = 'all',
+        help = 'Which model to plot.')
+    target.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
+        help = 'The number of realisations to process.')
+    target.add_argument('-s', type = int, default = DEFAULT_SEED,
+        help = 'The seed used for the random number generator.')
+
+    target.add_argument('-p', action = 'store_true',
+        help = 'Exclusively run the preprocessor.')
+
+    group = parser.add_argument_group('preprocessor',
+        description = 'Arguments relevant to the preprocessor.')
+    preprocess.add_arguments(parser, group)
+
+
+def main(arguments: argparse.Namespace) -> None:
+    args = vars(arguments) # Shorthand for easier access!
+
+    # If the `-p` flag is set, pass to the preprocessor.
+    if args['p']:
+        preprocess.main(arguments)
+        return
+
+    model = args['m']
+    realisations = args['r']
+
+    if not model == 'all':
+        if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
+            exit('A cache file already exists! Use `-f` or `--force` to ' \
+                 'regenerate it.')
+
+    events = preprocess.preprocess(arguments)
+    models = MODELS if model == 'all' else list(model)
+
+    for model in models:
+        name = MODELS_EXPANDED[model]
+        print(f'Sampling model {name} ({model})...')
+
+        # Check if a cache for this model already exists, and if it
+        # does, deserialise it.
+        if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
+            print('A cache file already exists! Use `-f` or `--force` to ' \
+                  'regenerate it.')
+        else:
+            # Seed the random number generator.
+            global random
+            random = np.random.default_rng(args['s'])
+
+            samples = process(events, model, realisations)
+            serialise(CACHE_DIRECTORY, samples, model, realisations)
+
+        print(f'Finished sampling model {name} ({model}).')
+        print()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog = 'sample')
+    add_arguments(parser)
+
+    arguments = parser.parse_args()
+
+    main(arguments)

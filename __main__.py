@@ -7,18 +7,6 @@ from common import *
 import plot, preprocess, sample
 
 
-# Shorthand for the models of the relativistic jets sometimes produced
-# during binary black hole mergers.
-MODELS = ['QQ', 'NU', 'BZ', 'GW']
-
-# Cases of opening angle for the relativistic jets sometimes produced
-# during binary black hole mergers.
-CASES = ['i', 'u', 'f']
-
-# Default number of realisations.
-DEFAULT_REALISATIONS = 1
-
-
 def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''Adds command-line arguments relevant to this module to an
     argument parser.
@@ -31,22 +19,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-c',
         choices = [*CASES, 'isotropic', 'uniform', 'fixed', 'all'],
         default = 'all', help = 'Which case to plot.')
-    parser.add_argument('-m', choices = [*MODELS, 'all'], default = 'all',
-        help = 'Which model to plot.')
-
-    parser.add_argument('-p', action = 'store_true',
-        help = 'Exclusively run the preprocessor.')
-    parser.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
-        help = 'The number of realisations to process.')
-    parser.add_argument('-s', type = int, default = sample.DEFAULT_SEED,
-        help = 'The seed used for the random number generator.')
 
     parser.add_argument('--silent', action = 'store_true',
         help = 'Do not show the plots when sampling is complete.')
 
-    group = parser.add_argument_group('preprocessor',
-        description = 'Arguments relevant to the preprocessor.')
-    preprocess.add_arguments(parser, group)
+    group = parser.add_argument_group('sample',
+        description = 'Arguments relevant to the sampler.')
+    sample.add_arguments(parser, group)
 
 
 def main() -> None:
@@ -67,31 +46,25 @@ def main() -> None:
 
     model = args['m']
     case = args['c']
-    realisations = args['r']
-
-    events = preprocess.preprocess(arguments)
 
     # If 'all' is passed for the model or the case, substitute the
     # respective master list.
     models = MODELS if model == 'all' else [model]
     cases = CASES if case == 'all' else [case[0]]
 
-    for m in models:
-        name = MODELS_EXPANDED[m]
-        print(f'Processing model {name} ({m})...')
+    collector = sample.sample(arguments)
 
-        # Seed the random number generator.
-        sample.random = np.random.default_rng(args['s'])
+    for model in models:
+        name = MODELS_EXPANDED[model]
+        print(f'Plotting model {name} ({model})...')
 
-        samples = sample.process(events, m, realisations)
+        for case in cases:
+            print(f'Plotting case {CASES_EXPANDED[case]}...')
+            plot.plot(collector[model], model, case)
 
-        for c in cases:
-            print(f'Plotting case {CASES_EXPANDED[c]}...')
-            plot.plot(samples, m, c)
+            sample.compute(collector[model], model, case)
 
-            sample.compute(samples, m, c)
-
-        print(f'Finished processing model {name} ({m}).')
+        print(f'Finished plotting model {name} ({model}).')
         print()
 
     if not args['silent']:
