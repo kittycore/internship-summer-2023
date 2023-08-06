@@ -244,7 +244,7 @@ def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
     realisations = args['r']
 
     events = preprocess.preprocess(arguments)
-    models = MODELS if model == 'all' else list(model)
+    models = MODELS if model == 'all' else [model]
 
     collector = {}
 
