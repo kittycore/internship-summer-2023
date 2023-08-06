@@ -204,7 +204,21 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
 
 
 def is_cached(directory: str, model: str, realisations: int) -> bool:
-    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+    '''Returns True if a cache sample already exists. Each model of
+    relativistic jet and number of realisations generates a unique
+    cache sample.
+
+    Args:
+        directory (str): The directory to search for a cached sample.
+        model (str): Which model to search for.
+        realisations (int): The number of realisations to search for.
+
+    Returns:
+        bool: True is a cache exists, and False otherwise.
+    '''
+
+    path = os.path.join(directory,
+        CACHE_FILE.format(model = model, realisations = realisations))
     return os.path.isfile(path)
 
 
