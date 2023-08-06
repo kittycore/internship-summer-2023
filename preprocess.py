@@ -500,6 +500,8 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     print()
     print('Preprocessing complete!')
 
+    serialise(CACHE_DIRECTORY, events)
+
     return events
 
 
@@ -544,10 +546,7 @@ def main(arguments: argparse.Namespace) -> None:
         exit('A cache file already exists! Use `-f` or `--force` to ' \
              'regenerate it.')
 
-    events = preprocess(arguments)
-
-    # Serialise the events to a cache file.
-    serialise(CACHE_DIRECTORY, events)
+    preprocess(arguments)
 
 
 if __name__ == '__main__':
