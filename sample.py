@@ -7,20 +7,19 @@ import preprocess
 from preprocess import Event
 
 
+# The name format of the cache to store samples.
+CACHE_FILE = 'sample_{model}_{realisations}.npz'
+
 # The opening angle for the 'fixed' case, in radians.
 FIXED_ANGLE = np.deg2rad(20)
-# A right angle, in radians.
+
 RIGHT_ANGLE = np.pi / 2
 
-# Default seed for the random number generator.
 DEFAULT_SEED = 0x9B7DB742C51C67FF
-# A random number generator accessible anywhere in this module.
 random: np.random.Generator = np.random.default_rng(DEFAULT_SEED)
 
 # What percentile to consider 'confident' for the number of detections.
 CONFIDENCE = 95
-
-CACHE_FILE = 'sample_{model}_{realisations}.npz'
 
 # Default number of realisations.
 DEFAULT_REALISATIONS = 1
@@ -81,8 +80,6 @@ def is_visible(
     wrapped = inclinations - (2 * RIGHT_ANGLE)
     inclinations = np.where(needs_wrapping, wrapped, inclinations)
 
-    # If no `opening_angles` are specified, use the fixed angle stored
-    # in the constant `FIXED_ANGLE`. Otherwise, use `opening_angles`.
     angle = FIXED_ANGLE if opening_angles is None else opening_angles
 
     within_maximum = inclinations <  angle
@@ -129,17 +126,12 @@ def realise(events: dict[str, Event], model: str) -> EventSample:
     sample_size = len(events)
     sample = EventSample(sample_size)
 
-    # Collect all of the events into a single array.
     collector = np.concatenate([*events.values()], axis = -1)
-
-    # Randomly choose fluxes from the set of events and determine which
-    # of these fluxes are potentially detectable.
     choices = random.choice(collector, size = sample_size, shuffle = False)
 
     fluxes = choices[f'flux_{model}']
     sample[f'predicted_{model}'] = fluxes
 
-    # Determine the visibility of the chosen fluxes.
     inclinations = choices['inclination']
     upper_limits = choices['upper_limit']
     sample['visible_f'] = is_visible(inclinations, upper_limits)
@@ -168,7 +160,6 @@ def process(
 
     collector = []
 
-    # Repeatedly sample the set of events and collect the results.
     for _ in progress_bar(range(0, realisations), prefix = 'Realising: '):
         sample = realise(events, model)
         collector.append(sample)
@@ -181,8 +172,8 @@ def compute(samples: list[EventSample], model: str, case: str) -> None:
     detections = np.zeros(realisations, dtype = int)
 
     anisotropic = is_anisotropic(case)
+
     for index, sample in enumerate(samples):
-        # Determine which of the events are detectable in this `case`.
         detectable = sample[f'detectable_{model}']
         if anisotropic:
             visible = sample[f'visible_{case[0]}']
@@ -223,7 +214,8 @@ def is_cached(directory: str, model: str, realisations: int) -> bool:
 
 
 def deserialise(directory: str, model: str, realisations: int) -> list[EventSample]:
-    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+    path = os.path.join(directory,
+        CACHE_FILE.format(model = model, realisations = realisations))
 
     samples = None
     with np.load(path) as dataset:
@@ -233,7 +225,8 @@ def deserialise(directory: str, model: str, realisations: int) -> list[EventSamp
 
 
 def serialise(directory: str, samples: list[EventSample], model: str, realisations: int) -> None:
-    path = os.path.join(directory, CACHE_FILE.format(model = model, realisations = realisations))
+    path = os.path.join(directory,
+        CACHE_FILE.format(model = model, realisations = realisations))
     np.savez(path, *samples)
 
 
@@ -252,13 +245,10 @@ def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
         name = MODELS_EXPANDED[model]
         print(f'Sampling model {name} ({model})...')
 
-        # Check if a cache for this model already exists, and if it
-        # does, deserialise it.
         if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
-            print('A cache file already exists! Loading from cache...')
+            print('A cached sample already exists! Loading from cache...')
             collector[model] = deserialise(CACHE_DIRECTORY, model, realisations)
         else:
-            # Seed the random number generator.
             global random
             random = np.random.default_rng(args['s'])
 
@@ -283,7 +273,7 @@ def add_arguments(parser: argparse.ArgumentParser,
         help = 'Which model to plot.')
     target.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
         help = 'The number of realisations to process.')
-    target.add_argument('-s', type = int, default = DEFAULT_SEED,
+    target.add_argument('--seed', type = int, default = DEFAULT_SEED,
         help = 'The seed used for the random number generator.')
 
     target.add_argument('-p', action = 'store_true',
@@ -317,15 +307,12 @@ def main(arguments: argparse.Namespace) -> None:
         name = MODELS_EXPANDED[model]
         print(f'Sampling model {name} ({model})...')
 
-        # Check if a cache for this model already exists, and if it
-        # does, deserialise it.
         if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
             print('A cache file already exists! Use `-f` or `--force` to ' \
                   'regenerate it.')
         else:
-            # Seed the random number generator.
             global random
-            random = np.random.default_rng(args['s'])
+            random = np.random.default_rng(args['seed'])
 
             samples = process(events, model, realisations)
             serialise(CACHE_DIRECTORY, samples, model, realisations)
@@ -335,7 +322,8 @@ def main(arguments: argparse.Namespace) -> None:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog = 'sample')
+    parser = argparse.ArgumentParser(prog = 'sample',
+        description = 'Samples preprocessed events to be plotted.')
     add_arguments(parser)
 
     arguments = parser.parse_args()
