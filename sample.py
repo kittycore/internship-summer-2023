@@ -243,7 +243,7 @@ def deserialise(directory: str, model: str, realisations: int) -> list[EventSamp
     return samples
 
 
-def serialise(directory: str, samples: list[EventSample], model: str, realisations: int) -> None:
+def serialise(directory: str, samples: list[EventSample], model: str) -> None:
     '''Serialises a list of samples to a cache file.
 
     Args:
@@ -253,7 +253,7 @@ def serialise(directory: str, samples: list[EventSample], model: str, realisatio
     '''
 
     path = os.path.join(directory,
-        CACHE_FILE.format(model = model, realisations = realisations))
+        CACHE_FILE.format(model = model, realisations = len(samples)))
     np.savez(path, *samples)
 
 
@@ -292,7 +292,7 @@ def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
             random = np.random.default_rng(args['s'])
 
             samples = process(events, model, realisations)
-            serialise(CACHE_DIRECTORY, samples, model, realisations)
+            serialise(CACHE_DIRECTORY, samples, model)
             collector[model] = samples
 
         print(f'Finished sampling model {name} ({model}).')
@@ -367,7 +367,7 @@ def main(arguments: argparse.Namespace) -> None:
             random = np.random.default_rng(args['seed'])
 
             samples = process(events, model, realisations)
-            serialise(CACHE_DIRECTORY, samples, model, realisations)
+            serialise(CACHE_DIRECTORY, samples, model)
 
         print(f'Finished sampling model {name} ({model}).')
         print()
