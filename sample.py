@@ -276,12 +276,12 @@ def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
     realisations = args['r']
 
     events = preprocess.preprocess(arguments)
-    models = MODELS if model == 'all' else [model]
+    models = JET_MODELS if model == 'all' else [model]
 
     collector = {}
 
     for model in models:
-        name = MODELS_EXPANDED[model]
+        name = JET_MODELS_EXPANDED[model]
         print(f'Sampling model {name} ({model})...')
 
         if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):
@@ -319,7 +319,7 @@ def add_arguments(parser: argparse.ArgumentParser,
     if group:
         target = group
 
-    target.add_argument('-m', choices = [*MODELS, 'all'], default = 'all',
+    target.add_argument('-m', choices = [*JET_MODELS, 'all'], default = 'all',
         help = 'Which model to plot.')
     target.add_argument('-r', type = int, default = DEFAULT_REALISATIONS,
         help = 'The number of realisations to process.')
@@ -350,10 +350,10 @@ def main(arguments: argparse.Namespace) -> None:
                  'regenerate it.')
 
     events = preprocess.preprocess(arguments)
-    models = MODELS if model == 'all' else list(model)
+    models = JET_MODELS if model == 'all' else list(model)
 
     for model in models:
-        name = MODELS_EXPANDED[model]
+        name = JET_MODELS_EXPANDED[model]
         print(f'Sampling model {name} ({model})...')
 
         if not args['force'] and is_cached(CACHE_DIRECTORY, model, realisations):

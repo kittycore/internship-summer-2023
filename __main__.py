@@ -16,7 +16,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     '''
 
     parser.add_argument('-c',
-        choices = [*CASES, 'isotropic', 'uniform', 'fixed', 'all'],
+        choices = [*JET_CASES, 'isotropic', 'uniform', 'fixed', 'all'],
         default = 'all',
         help = 'Which case of opening angle to plot. Defaults to "all".'
     )
@@ -48,17 +48,17 @@ def main() -> None:
     model = args['m']
     case = args['c']
 
-    models = MODELS if model == 'all' else [model]
-    cases = CASES if case == 'all' else [case[0]]
+    models = JET_MODELS if model == 'all' else [model]
+    cases = JET_CASES if case == 'all' else [case[0]]
 
     collector = sample.sample(arguments)
 
     for model in models:
-        name = MODELS_EXPANDED[model]
+        name = JET_MODELS_EXPANDED[model]
         print(f'Plotting model {name} ({model})...')
 
         for case in cases:
-            print(f'Plotting case {CASES_EXPANDED[case]}...')
+            print(f'Plotting case {JET_CASES_EXPANDED[case]}...')
             plot.plot(collector[model], model, case)
             sample.compute(collector[model], model, case)
 

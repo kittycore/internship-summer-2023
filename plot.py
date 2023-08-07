@@ -22,7 +22,7 @@ def configure_subplot(axes: plt.Axes, model: str) -> None:
         model (str): The model being plotted.
     '''
 
-    axes.set_title(f'{MODELS_EXPANDED[model]} ({model})')
+    axes.set_title(f'{JET_MODELS_EXPANDED[model]} ({model})')
     axes.set_xlabel('Flux (erg s⁻¹ cm⁻²)')
     axes.set_ylabel('Number')
     axes.set_xscale('log') # type: ignore
@@ -67,7 +67,7 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
 
     if anisotropic:
         axes.hist(fluxes_visible, bins, color = '#a9a9a9',
-            label = f'Visible ({CASES_EXPANDED[case[0]]})')
+            label = f'Visible ({JET_CASES_EXPANDED[case[0]]})')
 
     axes.hist(fluxes_detected, bins, color = '#eb3a2e', label = 'Detectable')
 
@@ -151,7 +151,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     if anisotropic:
         axes.stairs(median_v, bins, fill = True, color = '#a9a9a9',
-            label = f'Visible ({CASES_EXPANDED[case[0]]})')
+            label = f'Visible ({JET_CASES_EXPANDED[case[0]]})')
 
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
         label = 'Detectable')

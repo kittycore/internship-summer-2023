@@ -3,9 +3,9 @@ CACHE_DIRECTORY = 'cache'
 
 # Shorthand for the models of the relativistic jets sometimes produced
 # during binary black hole mergers.
-MODELS = ['QQ', 'NU', 'BZ', 'GW']
+JET_MODELS = ['QQ', 'NU', 'BZ', 'GW']
 # More descriptive names for each of the models.
-MODELS_EXPANDED = {
+JET_MODELS_EXPANDED = {
     'QQ': 'Charged Black Hole',
     'NU': 'Neutrino-Antineutrino Annihilation',
     'BZ': 'Blandford-Znajek',
@@ -14,9 +14,9 @@ MODELS_EXPANDED = {
 
 # Cases of opening angle for the relativistic jets sometimes produced
 # during binary black hole mergers.
-CASES = ['i', 'u', 'f']
+JET_CASES = ['i', 'u', 'f']
 # More descriptive names for each of the cases.
-CASES_EXPANDED = {
+JET_CASES_EXPANDED = {
     'i': 'Isotropic',
     'u': 'Uniform',
     'f': 'Fixed',

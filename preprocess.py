@@ -12,7 +12,7 @@ from typing import cast, Iterator
 CACHE_FILE = 'preprocessed.npz'
 
 # Models found within the GWTC datasets.
-MODELS = [
+GWTC_MODELS = [
     'IMRPhenomXPHM_comoving', 'IMRPhenomXPHM', 'IMRPhenomPv3HM',
     'IMRPhenomPv2', 'NRSur7dq4', 'SEOBNRv4PHM', 'PrecessingSpinIMRHM',
     'SEOBNRv4P',
@@ -99,7 +99,7 @@ def extract_model(path: str) -> str:
             not found within GWTC datasets.
     '''
 
-    for model in MODELS:
+    for model in GWTC_MODELS:
         if model in path:
             return model
     return 'Unknown'
