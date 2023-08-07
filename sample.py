@@ -168,6 +168,15 @@ def process(
 
 
 def compute(samples: list[EventSample], model: str, case: str) -> None:
+    '''Computes the mean, median and 95% confidence for the number of
+    detections for a given `model` and `case` of opening angle.
+
+    Args:
+        samples (list[EventSample]): A list of samples to compute with.
+        model (str): The model of relativistic jet used for the sample.
+        case (str): The case of opening angle to compute for.
+    '''
+
     realisations = len(samples)
     detections = np.zeros(realisations, dtype = int)
 
@@ -214,6 +223,16 @@ def is_cached(directory: str, model: str, realisations: int) -> bool:
 
 
 def deserialise(directory: str, model: str, realisations: int) -> list[EventSample]:
+    '''Deserialises a list of samples from a cache file.
+
+    Args:
+        directory (str): The directory where the cache is located.
+        model (str): The model used for the samples.
+
+    Returns:
+        list[EventSample]: The deserialised list of samples.
+    '''
+
     path = os.path.join(directory,
         CACHE_FILE.format(model = model, realisations = realisations))
 
@@ -225,12 +244,32 @@ def deserialise(directory: str, model: str, realisations: int) -> list[EventSamp
 
 
 def serialise(directory: str, samples: list[EventSample], model: str, realisations: int) -> None:
+    '''Serialises a list of samples to a cache file.
+
+    Args:
+        directory (str): The directory to save the cache into.
+        samples (list[EventSample]): The list of samples to cache.
+        model (str): The model used for the samples.
+    '''
+
     path = os.path.join(directory,
         CACHE_FILE.format(model = model, realisations = realisations))
     np.savez(path, *samples)
 
 
 def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
+    '''Produces a set of samples.
+
+    Args:
+        arguments (argparse.Namespace): The main entrypoint should pass
+            through the parsed arguments through this parameter.
+
+    Returns:
+        dict[str, list[EventSample]]: A dictionary containing the name
+            of the sampled models (as the keys) and a list of samples
+            (as the values).
+    '''
+
     args = vars(arguments) # Shorthand for easier access!
 
     model = args['m']
@@ -264,6 +303,17 @@ def sample(arguments: argparse.Namespace) -> dict[str, list[EventSample]]:
 
 def add_arguments(parser: argparse.ArgumentParser,
     group: argparse._ArgumentGroup | None = None) -> None:
+    '''Adds command-line arguments relevant to the preprocessor to an
+    argument parser.
+
+    Args:
+        parser (argparse.ArgumentParser): The argument parser to add
+            the relevant command-line arguments to.
+        group (argparse._ArgumentGroup, optional): The argument group
+            to add the arguments to. If unspecified, the arguments are
+            added to the top-level group.
+    '''
+
     # If a group is specified, re-route `add_argument` calls to it.
     target = parser
     if group:
@@ -285,6 +335,8 @@ def add_arguments(parser: argparse.ArgumentParser,
 
 
 def main(arguments: argparse.Namespace) -> None:
+    '''Main entrypoint.'''
+
     args = vars(arguments) # Shorthand for easier access!
 
     # If the `-p` flag is set, pass to the preprocessor.
