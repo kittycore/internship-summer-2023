@@ -17,12 +17,14 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument('-c',
         choices = [*CASES, 'isotropic', 'uniform', 'fixed', 'all'],
-        default = 'all', help = 'Which case to plot.')
+        default = 'all',
+        help = 'Which case of opening angle to plot. Defaults to "all".'
+    )
 
-    parser.add_argument('--silent', action = 'store_true',
+    parser.add_argument('--hidden', action = 'store_true',
         help = 'Do not show the plots when sampling is complete.')
 
-    group = parser.add_argument_group('sample',
+    group = parser.add_argument_group('sampler',
         description = 'Arguments relevant to the sampler.')
     sample.add_arguments(parser, group)
 
@@ -31,8 +33,8 @@ def main() -> None:
     '''Main entrypoint.'''
 
     parser = argparse.ArgumentParser(prog = 'limits',
-        description = 'Estimates the upper limits of the binary black hole ' \
-            'population visible with Fermi-GBM.')
+        description = 'Estimates the gamma-ray upper limits of the binary ' \
+            'black hole population.')
     add_arguments(parser)
 
     arguments = parser.parse_args()
@@ -46,8 +48,6 @@ def main() -> None:
     model = args['m']
     case = args['c']
 
-    # If 'all' is passed for the model or the case, substitute the
-    # respective master list.
     models = MODELS if model == 'all' else [model]
     cases = CASES if case == 'all' else [case[0]]
 
@@ -60,13 +60,12 @@ def main() -> None:
         for case in cases:
             print(f'Plotting case {CASES_EXPANDED[case]}...')
             plot.plot(collector[model], model, case)
-
             sample.compute(collector[model], model, case)
 
         print(f'Finished plotting model {name} ({model}).')
         print()
 
-    if not args['silent']:
+    if not args['hidden']:
         plt.show()
 
 
