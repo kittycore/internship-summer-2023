@@ -8,7 +8,7 @@ from common import *
 from typing import cast, Iterator
 
 
-# The name of the cache file.
+# The name of the cache to store the preprocessed events.
 CACHE_FILE = 'preprocessed.npz'
 
 # Models found within the GWTC datasets.
@@ -153,8 +153,8 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
         identifier = extract_identifier(key)
         model = extract_model(key)
 
-        # If the model is not found within GWTC datasets, skip it.
-        if model == 'Unknown':
+        absent = model == 'Unknown'
+        if absent:
             continue
 
         skip = False
@@ -170,7 +170,6 @@ def trim_models(models: dict[str, str]) -> dict[str, str]:
 
         keeps.append(key)
 
-    # Return a copy of the models dictionary with only the keys in `keeps`.
     return { key: models[key] for key in keeps }
 
 
@@ -203,7 +202,6 @@ def load_models(models: dict[str, str]) -> dict[str, Event]:
         event['flux_BZ'] = data['FBZ']
         event['flux_GW'] = data['FGW']
 
-        # Initialise the rest of the array to NaN instead of garbage.
         event['right_ascension'] = np.nan
         event['declination'] = np.nan
         event['upper_limit'] = np.nan
@@ -265,14 +263,12 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
         identifier = extract_identifier(key)
         path = None
 
-        # If there's an exact match for the identifier...
         if identifier in places:
             path = places[identifier]
         else:
-            # Otherwise, search for a similar identifier.
-            for i, p in places.items():
-                if identifier in i:
-                    path = p
+            for other_identifier, other_path in places.items():
+                if identifier in other_identifier:
+                    path = other_path
                     break
 
         if path is None:
@@ -295,7 +291,6 @@ def load_places(places: dict[str, str], events: dict[str, Event]) \
 
             data = f[model_key]['posterior_samples'] # type: ignore
 
-            # Check if there is a shape mismatch.
             if event.shape != data['ra'].shape: # type: ignore
                 print(f'Ignoring {identifier} ({model}) from {path} due to ' \
                        'shape mismatch.')
@@ -362,22 +357,18 @@ def load_limits(limits: dict[str, str], events: dict[str, Event]) \
     for key, event in progress_bar(events.items(), prefix = 'Loading'):
         identifier = extract_identifier(key)
 
-        # If there are any NaNs in the event's coordinates, then a location for
-        # the event was unable to be determined and it has to be skipped.
         if np.isnan(event['declination']).any():
             print(f'Ignoring {identifier} due to uninitialised coordinates.')
             continue
 
         path = None
 
-        # If there's an exact match for the identifier...
         if identifier in limits:
             path = limits[identifier]
         else:
-            # Otherwise, search for a similar identifier.
-            for i, p in limits.items():
-                if identifier in i:
-                    path = p
+            for other_identifier, other_path in limits.items():
+                if identifier in other_identifier:
+                    path = other_path
                     break
 
         if path is None:
@@ -468,13 +459,10 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
     args = vars(arguments) # Shorthand for easier access!
     root_directory = args['root_directory']
 
-    # Check if a cache already exists, and if it does, deserialise it and
-    # return that instead.
     if not args['force'] and is_cached(CACHE_DIRECTORY):
         print('A cache file already exists! Loading from cache...')
         return deserialise(CACHE_DIRECTORY)
 
-    # Find, trim and finally load the simulation models.
     print('Preprocessing models...')
     directory = os.path.join(root_directory, args['models_directory'])
     models = find_models(directory)
@@ -483,7 +471,6 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
 
     print()
 
-    # Find and load coordinates for each event from the GWTC datasets.
     print('Preprocessing places...')
     directory = os.path.join(root_directory, args['places_directory'])
     places = find_places(directory)
@@ -491,7 +478,6 @@ def preprocess(arguments: argparse.Namespace) -> dict[str, Event]:
 
     print()
 
-    # Find and load upper limits for each event.
     print('Preprocessing limits...')
     directory = os.path.join(root_directory, args['limits_directory'])
     limits = find_limits(directory)
@@ -541,7 +527,6 @@ def add_arguments(parser: argparse.ArgumentParser,
 def main(arguments: argparse.Namespace) -> None:
     args = vars(arguments) # Shorthand for easier access!
 
-    # Check if a cache already exists, and if it does, print a notice and exit.
     if not args['force'] and is_cached(CACHE_DIRECTORY):
         exit('A cache file already exists! Use `-f` or `--force` to ' \
              'regenerate it.')
