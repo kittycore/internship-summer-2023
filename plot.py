@@ -9,7 +9,6 @@ from sample import EventSample
 from typing import cast
 
 
-# Default number of bins for plotted histograms.
 DEFAULT_BIN_COUNT = 20
 # The maximum number of realisations to plot separately.
 MAXIMUM_PLOTS = 5
@@ -50,8 +49,6 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
     key_predicted = f'predicted_{model}'
     key_visible = f'visible_{case[0]}'
 
-    # Pick out the predicted fluxes, visible fluxes (if applicable),
-    # and detectable fluxes.
     fluxes = sample[key_predicted]
     fluxes_visible  = fluxes[sample[key_visible]] if anisotropic else None
     fluxes_detected = None
@@ -61,17 +58,13 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
     else:
         fluxes_detected = fluxes[sample[f'detectable_{model}']]
 
-    # Determine the histogram binning based upon the minimum and
-    # maximum fluxes within log-space.
     maximum = np.max(fluxes)
     minimum = np.min(fluxes)
     bins = np.logspace(np.log10(minimum), np.log10(maximum), DEFAULT_BIN_COUNT)
 
-    # Plot each set of fluxes.
     axes = cast(plt.Axes, figure.subplots())
     axes.hist(fluxes, bins, color = '#bcefb7', label = 'Isotropic')
 
-    # If `case` is not `isotropic`, plot the visible fluxes for `case`.
     if anisotropic:
         axes.hist(fluxes_visible, bins, color = '#a9a9a9',
             label = f'Visible ({CASES_EXPANDED[case[0]]})')
@@ -80,7 +73,6 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
 
     configure_subplot(axes, model)
 
-    # Configure the plot.
     figure.suptitle('Population Sample (Single)')
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
@@ -142,7 +134,6 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         histogram, _ = np.histogram(fluxes_d, bins)
         histograms_d = np.column_stack((histograms_d, histogram))
 
-    # Generate the median histogram and the confidence band.
     median_i = np.empty(shape = bins.size - 1)
     median_d = np.copy(median_i)
     median_v = np.copy(median_i)
@@ -154,12 +145,10 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
         if anisotropic:
             median_v[b] = np.median(histograms_v[b])
 
-    # Plot the median histograms.
     axes = cast(plt.Axes, figure.subplots())
     axes.stairs(median_i, bins, fill = True, color = '#bcefb7',
         label = 'Isotropic')
 
-    # If `case` is not `isotropic`, plot the visible fluxes for `case`.
     if anisotropic:
         axes.stairs(median_v, bins, fill = True, color = '#a9a9a9',
             label = f'Visible ({CASES_EXPANDED[case[0]]})')
@@ -169,7 +158,6 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
 
     configure_subplot(axes, model)
 
-    # Configure the plot.
     figure.suptitle('Population Sample (Median)')
     figure.tight_layout(rect = (0, 0.03, 1, 0.975)) # type: ignore
 
