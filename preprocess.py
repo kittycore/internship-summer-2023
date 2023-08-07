@@ -511,6 +511,8 @@ def add_arguments(parser: argparse.ArgumentParser,
 
     target.add_argument('-f', '--force', action = 'store_true',
         help = 'Regenerates and overwrites the cache if it already exists.')
+    target.add_argument('--preprocessor', action = 'store_true',
+        help = 'Exclusively run the preprocessor.')
 
     subgroup = parser.add_argument_group('directories',
         description = 'Specify the directories where datasets are located.')

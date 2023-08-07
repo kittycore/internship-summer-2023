@@ -40,8 +40,8 @@ def main() -> None:
     arguments = parser.parse_args()
     args = vars(arguments) # Shorthand for easier access!
 
-    # If the `-p` flag is set, pass along to the preprocessor.
-    if args['p']:
+    # If the `--preprocessor` flag is set, pass along to the preprocessor.
+    if args['preprocessor']:
         preprocess.main(arguments)
         return
 
