@@ -67,3 +67,7 @@ mentorship of Dr Joshua Wood. The datasets used for this project were provided
 by Dr Peter Veres and the LIGO Scientific Collaboration, VIRGO Collaboration,
 and KAGRA Collaboration. Special thanks go to the Fermi-GBM team for their
 kindness and support.
+
+## License
+
+This project is licensed under the [GNU General Public License v3](./COPYING).
