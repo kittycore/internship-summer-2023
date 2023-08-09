@@ -69,7 +69,7 @@ def plot_realisation(sample: EventSample, model: str, case: str) -> plt.Figure:
         axes.hist(fluxes_visible, bins, color = '#a9a9a9',
             label = f'Visible ({JET_CASES_EXPANDED[case[0]]})')
 
-    axes.hist(fluxes_detected, bins, color = '#eb3a2e', label = 'Detectable')
+    axes.hist(fluxes_detected, bins, color = '#eb3a2e', label = 'Exceeds UL.')
 
     configure_subplot(axes, model)
 
@@ -154,7 +154,7 @@ def plot_median(samples: list[EventSample], model: str, case: str) -> plt.Figure
             label = f'Visible ({JET_CASES_EXPANDED[case[0]]})')
 
     axes.stairs(median_d, bins, fill = True, color = '#eb3a2e',
-        label = 'Detectable')
+        label = 'Exceeds U.L.')
 
     configure_subplot(axes, model)
 
