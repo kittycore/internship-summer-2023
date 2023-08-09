@@ -1,33 +1,34 @@
 # Constraining the Population of Binary Black Holes
 
-This programme samples simulated gravitational wave events and determines how
-many of the sampled events exceed the upper limits of Fermi-GBM.
+This programme samples gravitational wave events and simulated gamma-ray
+fluxes, then determines how many of the sampled events exceed the upper
+limits of Fermi-GBM and plots the results.
 
 ## Requirements
 
 To use this programme, the following datasets are required:
 
 - Simulations of different relativistic jet models for each gravitational wave
-event in a text format. Supplied by Dr Peter Veres.
-- The [GWTC-2](https://dcc.ligo.org/LIGO-P2000223/public),
-[GWTC-2.1 v1](https://zenodo.org/record/5117703),
-[GWTC-2.1 v2](https://zenodo.org/record/6513631), and/or
-[GWTC-3](https://zenodo.org/record/5546663) catalogues
-from the LIGO Scientific Collaboration, VIRGO Collaboration and KAGRA
-Collaboration.
+event in a text (.txt) format. Supplied by Dr Peter Veres.
+- The following GWTC catalogues from the LIGO Scientific Collaboration, VIRGO
+Collaboration and KAGRA Collaboration, in HDF5 (.h5) format:
+    - [GWTC-2](https://dcc.ligo.org/LIGO-P2000223/public)
+    - [GWTC-2.1 v1](https://zenodo.org/record/5117703)
+    - [GWTC-2.1 v2](https://zenodo.org/record/6513631)
+    - [GWTC-3](https://zenodo.org/record/5546663)
 - The upper limits of Fermi-GBM for each gravitational wave event in a binary
-NumPy format.
+NumPy (.npy) format.
 
-The default folder structure for this datasets is as follows:
+The default folder structure to place these datasets is as follows:
 
 ```
 data/
     GWTC/           | The GWTC datasets go here.
-    modelling/      | Peter's models go here.
+    modelling/      | The relativistic jet models go here.
     upper_limits/   | The upper limits go here.
 ```
 
-## Installation
+## Dependencies
 
 It is recommended that you create a virtual environment to isolate packages
 required by this programme. To create a virtual environment, activate it and
