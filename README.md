@@ -44,8 +44,8 @@ pip install -r requirements.txt
 ## Usage
 
 To generate a plot of sample for a particular model and case of opening angle,
-use `python . -m [model] -c [case]`. The resulting plot(s) will be located in
-the `figures` directory.
+use `python bbh_limits.py -m [model] -c [case]`. The resulting plot(s) will be
+located in the `figures` directory.
 
 If no model is specified, then all models will be sampled. If no case is
 specified, then all cases will be sampled. Both can be left unspecified to
@@ -53,7 +53,7 @@ sample all cases of every model.
 
 To generate plots of several samples (or realisations), use the `-r` option
 and specify the number of realisations. For example, to generate plots of a
-hundred realisations, use `python . -r 100`.
+hundred realisations, use `python bbh_limits.py -r 100`.
 
 This programme creates caches of events and samples to improve speed. If you
 want to regenerate these caches (e.g., to use a different seed for the random
